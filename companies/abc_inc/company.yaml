@@ -1,0 +1,16 @@
+source:
+  type: excel_pl
+  path: data/ABC Inc - Financial Statements.xlsx
+  sheet: Income Statement
+  header_row: 5
+  section_label_col: A
+  account_label_col: B
+  period_header_format: "%b %Y"
+  sections:
+    - {header: "Income",             total: "Total Income",             kind: income}
+    - {header: "Cost of Goods Sold", total: "Total Cost of Goods Sold", kind: cogs}
+    - {header: "Operating Expenses", total: "Total Operating Expenses", kind: opex}
+  groups:
+    - {header: "S & M Payroll", total: "Total S & M Payroll"}
+    - {header: "Marketing",     total: "Total Marketing"}
+  derived_rows: ["Gross Profit", "Operating Income", "Net Income"]
