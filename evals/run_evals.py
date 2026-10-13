@@ -1,7 +1,11 @@
 """run_evals.py: the Task 3 eval suite. Offline and deterministic: no network, no model.
 
-    python evals/run_evals.py            run every case and every commentary draft
-    python evals/run_evals.py G03 X02    run only the named cases (commentary grading always runs)
+    python evals/run_evals.py                    run every case and every commentary draft, diff against the baseline
+    python evals/run_evals.py G03 X02            run only the named cases (commentary grading always runs)
+    python evals/run_evals.py --update-baseline  print the diff, then rewrite evals/baseline.json (full run only)
+    python evals/run_evals.py --help             all options (--cases-dir, --results, --baseline, --no-baseline)
+
+EVALS_SKILL_DIR=<folder> runs the suite against another copy of the skill (evals/run_mutants.py uses it).
 
 Part 1 (golden cases, evals/cases/*.json): each run drives the real CLI (trend_cli.py run / render) on ABC or on a
 transformed copy of the ABC workbook, then checks status, exit code, pinned facts, n/a reasons, flags, blocked reports
@@ -11,20 +15,29 @@ tests/oracle.py); a case whose literal disagrees with the oracle fails, so expec
 Part 2 (commentary grading): every good draft in tests/fixtures/commentary/ must pass `render`; every bad draft in
 evals/bad_drafts/g<N>_*.md must fail `render` with exactly the code G<N> and nothing else.
 
-Prints a PASS/FAIL table (a short diff under each failure), writes evals/results/latest.json, exits 0 only if all pass.
+Part 3 (regression baseline): the results are compared with evals/baseline.json (every row, every check name with
+its result, and a hash of each case file and draft). Any difference is printed and fails the run.
+
+Prints each row as it finishes, a PASS/FAIL table (a short diff under each failure), the baseline diff and the
+elapsed time; writes evals/results/latest.json. Exit 0: every row passed and the baseline matches. 1: a row failed.
+2: bad arguments. 5: no usable Python. 6: every row passed but the results differ from the baseline.
 """
+import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from decimal import Decimal
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SKILL_SCRIPTS = ROOT / ".claude" / "skills" / "monthly-trend-analysis" / "scripts"
+SKILL_DIR = Path(os.environ.get("EVALS_SKILL_DIR") or ROOT / ".claude" / "skills" / "monthly-trend-analysis").resolve()
+SKILL_SCRIPTS = SKILL_DIR / "scripts"
 CLI = SKILL_SCRIPTS / "trend_cli.py"
 
 
@@ -51,6 +64,7 @@ sys.path[:0] = [str(ROOT), str(SKILL_SCRIPTS)]        # tests.fixtures.mini (the
 from evals.oracle_facts import Oracle, text2  # noqa: E402
 
 CASES = ROOT / "evals" / "cases"
+BASELINE = ROOT / "evals" / "baseline.json"
 BAD = ROOT / "evals" / "bad_drafts"
 GOOD_DIR = ROOT / "tests" / "fixtures" / "commentary"
 RESULTS = ROOT / "evals" / "results" / "latest.json"
@@ -151,10 +165,18 @@ def transform_workbook(src, dst, t):
 
 
 def prepare(inp, tmp):
-    """-> (company_dir, workbook path, mapping path). Untransformed ABC runs from companies/abc_inc itself."""
-    if inp["company"] != "abc_inc":
-        raise ValueError("only abc_inc inputs are supported")
+    """-> (company_dir, workbook path, mapping path). Untransformed ABC runs from companies/abc_inc itself;
+    "fixture:<name>" builds a synthetic company (evals/fixture_companies.py) in the temp folder."""
     t = inp.get("transform") or {}
+    if inp["company"].startswith("fixture:"):
+        from evals.fixture_companies import BUILDERS
+        if t:
+            raise ValueError("transforms apply to abc_inc only")
+        cdir = BUILDERS[inp["company"].split(":", 1)[1]](tmp / "fixture")
+        doc = yaml.safe_load((cdir / "company.yaml").read_text(encoding="utf-8"))
+        return cdir, Path(doc["source"]["path"]), cdir / "mapping.yaml"
+    if inp["company"] != "abc_inc":
+        raise ValueError("only abc_inc and fixture:<name> inputs are supported")
     src_doc = yaml.safe_load((ABC_DIR / "company.yaml").read_text(encoding="utf-8"))
     src_wb = ROOT / src_doc["source"]["path"]
     if not t:
@@ -174,8 +196,8 @@ def prepare(inp, tmp):
 
 # ---------------------------------------------------------------- one run of one case
 
-def _run_folder(out_base):
-    folders = [d for d in (out_base / "abc_inc").iterdir() if d.is_dir()] if (out_base / "abc_inc").is_dir() else []
+def _run_folder(out_base, company_id):
+    folders = [d for d in (out_base / company_id).iterdir() if d.is_dir()] if (out_base / company_id).is_dir() else []
     return folders[0] if len(folders) == 1 else None
 
 
@@ -226,6 +248,11 @@ def check_ok_run(chk, exp, run_dir, oracle):
         chk.add(f"flag absent {want}", not hits, f"found {hits[:5]}")
     for typ, n in exp.get("flag_counts", {}).items():
         chk.eq(f"flag count {typ}", sum(f["type"] == typ for f in flags), n)
+    if exp.get("digest_contains"):
+        digest = (run_dir / "digest.json").read_text(encoding="utf-8")
+        for text in exp["digest_contains"]:
+            chk.add(f"digest.json carries {text[:40]!r}...", json.dumps(text, ensure_ascii=False)[1:-1] in digest,
+                    "text not found in digest.json")
     if "flags_golden" in exp:
         golden = json.loads((ROOT / exp["flags_golden"]).read_text(encoding="utf-8"))["flags"]
         old = {f["id"]: f for f in golden}
@@ -311,15 +338,18 @@ def one_run(chk, run, tmp):
     if not chk.add(f"run exit {exp['exit_code']}", r.returncode == exp["exit_code"],
                    f"exit {r.returncode}; stderr: {r.stderr.strip()[-300:]}"):
         return
-    run_dir = _run_folder(out)
+    run_dir = _run_folder(out, cdir.name)
     if not chk.add("one run folder", run_dir is not None, "no single run folder under --out"):
         return
     if "run_folder_files" in exp:
         chk.eq(f"run folder holds only {exp['run_folder_files']}",
                sorted(p.name for p in run_dir.iterdir()), sorted(exp["run_folder_files"]))
-    ref_doc = yaml.safe_load((ABC_DIR / "company.yaml").read_text(encoding="utf-8"))
-    oracles = {"original": Oracle(ROOT / ref_doc["source"]["path"], ABC_DIR / "company.yaml", ABC_DIR / "mapping.yaml"),
-               "transformed": Oracle(wb, cdir / "company.yaml", mapping)}
+    oracles = {"transformed": Oracle(wb, cdir / "company.yaml", mapping)}
+    if run["input"]["company"] == "abc_inc":
+        ref_doc = yaml.safe_load((ABC_DIR / "company.yaml").read_text(encoding="utf-8"))
+        oracles["original"] = Oracle(ROOT / ref_doc["source"]["path"], ABC_DIR / "company.yaml", ABC_DIR / "mapping.yaml")
+    else:
+        oracles["original"] = oracles["transformed"]
     if exp["status"] == "OK":
         check_ok_run(chk, exp, run_dir, oracles["transformed"])
     else:
@@ -356,7 +386,7 @@ def build_mini(tmp):
 GOOD_TARGETS = {"good_abc_2026-06.md": "abc", "good_mini_no_adjustments.md": "mini"}
 
 
-def grade_commentary():
+def grade_commentary(on_row=lambda row: None):
     rows = []
     with tempfile.TemporaryDirectory(prefix="evals_c_") as td:
         tmp = Path(td)
@@ -389,7 +419,8 @@ def grade_commentary():
                     chk.eq("exit 0", code, 0)
                     chk.eq("no failure codes", codes, [])
                     chk.eq("commentary.md written", written, True)
-            rows.append({"id": f"C-{p.stem}", "kind": "good draft", "expected": "pass", "checks": chk})
+            rows.append({"id": f"C-{p.stem}", "kind": "good draft", "expected": "pass", "checks": chk, "source": p})
+            on_row(rows[-1])
         for p in sorted(BAD.glob("*.md")):
             m = re.match(r"g(\d+)_", p.name)
             chk = Checks()
@@ -399,59 +430,163 @@ def grade_commentary():
                 chk.eq("exit 4", code, 4)
                 chk.eq(f"failure codes exactly [{want}]", codes, [want])
                 chk.eq("commentary.md not written", written, False)
-            rows.append({"id": f"C-{p.stem}", "kind": "bad draft", "expected": f"fail {want}", "checks": chk})
+            rows.append({"id": f"C-{p.stem}", "kind": "bad draft", "expected": f"fail {want}", "checks": chk, "source": p})
+            on_row(rows[-1])
     return rows
+
+
+# ---------------------------------------------------------------- regression baseline
+
+def snapshot(rows):
+    """{row id: {"source_sha256", "result", "checks": {check name: "PASS"|"FAIL"}}} for the baseline and its diff."""
+    out = {}
+    for r in rows:
+        checks = {}
+        for i in r["checks"].items:
+            name, k = i["check"], 2
+            while name in checks:                                  # keep a repeated check name distinct
+                name, k = f"{i['check']} #{k}", k + 1
+            checks[name] = "PASS" if i["ok"] else "FAIL"
+        out[r["id"]] = {"source_sha256": sha(r["source"]) if r.get("source") else None,
+                        "result": "PASS" if r["checks"].ok else "FAIL", "checks": checks}
+    return out
+
+
+def baseline_diff(base_rows, now, partial):
+    """-> list of lines, empty when the results match the baseline. `partial`: only some cases were selected, so
+    golden cases missing from this run are not reported as removed."""
+    lines = []
+    for rid in sorted(set(base_rows) | set(now)):
+        b, n = base_rows.get(rid), now.get(rid)
+        if b is None:
+            lines.append(f"NEW CASE      {rid} ({n['result']}, {len(n['checks'])} checks)")
+            continue
+        if n is None:
+            if not (partial and rid[0] in "GX"):
+                lines.append(f"REMOVED CASE  {rid} (was {b['result']}, {len(b['checks'])} checks)")
+            continue
+        if b["source_sha256"] != n["source_sha256"]:
+            lines.append(f"SOURCE EDITED {rid}: its case file / draft changed since the baseline")
+        if b["result"] != n["result"]:
+            lines.append(f"RESULT        {rid}: {b['result']} -> {n['result']}")
+        for c in sorted(set(b["checks"]) | set(n["checks"])):
+            if c not in b["checks"]:
+                lines.append(f"NEW CHECK     {rid}: {c} ({n['checks'][c]})")
+            elif c not in n["checks"]:
+                lines.append(f"REMOVED CHECK {rid}: {c} (was {b['checks'][c]})")
+            elif b["checks"][c] != n["checks"][c]:
+                lines.append(f"CHANGED       {rid}: {c}: {b['checks'][c]} -> {n['checks'][c]}")
+    return lines
 
 
 # ---------------------------------------------------------------- report
 
+def _row_line(r, w):
+    items = r["checks"].items
+    what = r.get("name") or f"{r['kind']}, expect {r['expected']}"
+    out = [f"{r['id'].ljust(w)}  {'PASS' if r['checks'].ok else 'FAIL':6}  {sum(i['ok'] for i in items):>2}/{len(items):<3}  {what}"]
+    out += [f"{' ' * w}    - {i['check']}: {i['detail']}" for i in items if not i["ok"]]
+    return "\n".join(out)
+
+
+def parse_args(argv):
+    ap = argparse.ArgumentParser(prog="run_evals.py", description="Run the eval suite (see the module docstring).")
+    ap.add_argument("ids", nargs="*", help="case ids to run (default: all); commentary grading always runs")
+    ap.add_argument("--cases-dir", type=Path, default=CASES, help="folder of case files (default: evals/cases)")
+    ap.add_argument("--results", type=Path, default=RESULTS, help="where to write the results JSON")
+    ap.add_argument("--baseline", type=Path, default=BASELINE, help="baseline to compare with")
+    ap.add_argument("--no-baseline", action="store_true", help="do not compare with the baseline")
+    ap.add_argument("--update-baseline", action="store_true",
+                    help="print the diff, then rewrite the baseline from this run (full run, every row passing)")
+    a = ap.parse_args(argv)
+    if a.update_baseline and (a.ids or a.no_baseline):
+        ap.error("--update-baseline needs a full run: no case ids and no --no-baseline")
+    return a
+
+
 def main(argv):
-    wanted = set(argv)
-    cases = [json.loads(p.read_text(encoding="utf-8")) for p in sorted(CASES.glob("*.json"))]
+    try:
+        args = parse_args(argv)
+    except SystemExit as e:
+        return e.code
+    t0 = time.perf_counter()
+    wanted = set(args.ids)
+    cases = [(p, json.loads(p.read_text(encoding="utf-8"))) for p in sorted(args.cases_dir.glob("*.json"))]
     if wanted:
-        unknown = wanted - {c["id"] for c in cases}
+        unknown = wanted - {c["id"] for _, c in cases}
         if unknown:
             print(f"error: unknown case id(s) {sorted(unknown)}", file=sys.stderr)
             return 2
-        cases = [c for c in cases if c["id"] in wanted]
+        cases = [(p, c) for p, c in cases if c["id"] in wanted]
     guarded_before = {str(p.relative_to(ROOT)): sha(p) for p in GUARDED}
+    if SKILL_DIR != (ROOT / ".claude" / "skills" / "monthly-trend-analysis").resolve():
+        print(f"skill under test: {SKILL_DIR}")
+
+    def progress(r):
+        print(f"[{time.perf_counter() - t0:6.1f}s] {r['id']:<26} {'PASS' if r['checks'].ok else 'FAIL'}", flush=True)
 
     rows = []
-    for c in cases:
-        rows.append({"id": c["id"], "kind": "golden case", "name": c["name"], "checks": run_case(c)})
-    rows += grade_commentary()
+    for p, c in cases:
+        rows.append({"id": c["id"], "kind": "golden case", "name": c["name"], "checks": run_case(c), "source": p})
+        progress(rows[-1])
+    rows += grade_commentary(progress)
 
     guard = Checks()
     for p in GUARDED:
         rel = str(p.relative_to(ROOT))
         guard.eq(f"{rel} unchanged", sha(p), guarded_before[rel])
     rows.append({"id": "GUARD", "kind": "guard", "name": "protected files unchanged", "checks": guard})
+    progress(rows[-1])
 
     w = max(len(r["id"]) for r in rows)
-    print(f"{'case'.ljust(w)}  result  checks  what")
+    print(f"\n{'case'.ljust(w)}  result  checks  what")
     print(f"{'-' * w}  ------  ------  ----")
     for r in rows:
-        items = r["checks"].items
-        n_ok = sum(i["ok"] for i in items)
-        what = r.get("name") or f"{r['kind']}, expect {r['expected']}"
-        print(f"{r['id'].ljust(w)}  {'PASS' if r['checks'].ok else 'FAIL':6}  {n_ok:>2}/{len(items):<3}  {what}")
-        for i in items:
-            if not i["ok"]:
-                print(f"{' ' * w}    - {i['check']}: {i['detail']}")
+        print(_row_line(r, w))
     passed = sum(r["checks"].ok for r in rows)
     print(f"\n{passed}/{len(rows)} passed "
           f"({sum(len(r['checks'].items) for r in rows)} checks, "
           f"{sum(not i['ok'] for r in rows for i in r['checks'].items)} failed)")
 
-    RESULTS.parent.mkdir(parents=True, exist_ok=True)
+    now = snapshot(rows)
+    diff = None
+    if not args.no_baseline:
+        if args.baseline.is_file():
+            base = json.loads(args.baseline.read_text(encoding="utf-8"))
+            diff = baseline_diff(base["rows"], now, partial=bool(wanted))
+            print(f"\nbaseline {args.baseline.name}: " + (f"{len(diff)} difference(s)" if diff else "no differences")
+                  + (" (partial run: only the selected cases and the commentary rows are compared)" if wanted else ""))
+            for line in diff:
+                print("  " + line)
+        else:
+            diff = [f"no baseline at {args.baseline}"]
+            print(f"\nbaseline: none at {args.baseline}; create it with --update-baseline")
+
+    elapsed = time.perf_counter() - t0
+    args.results.parent.mkdir(parents=True, exist_ok=True)
     git = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     doc = {"schema_version": 1, "git_sha": git or "unavailable", "selected": sorted(wanted) or "all",
+           "skill_dir": str(SKILL_DIR), "elapsed_seconds": round(elapsed, 1),
            "summary": {"rows": len(rows), "passed": passed, "failed": len(rows) - passed},
+           "baseline_differences": diff,
            "rows": [{"id": r["id"], "kind": r["kind"], "result": "PASS" if r["checks"].ok else "FAIL",
                      "checks": r["checks"].items} for r in rows]}
-    RESULTS.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
-    print(f"wrote {RESULTS.relative_to(ROOT)}")
-    return 0 if passed == len(rows) else 1
+    args.results.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+    print(f"wrote {args.results}")
+
+    if args.update_baseline:
+        if passed != len(rows):
+            print("baseline NOT updated: fix the failing rows first", file=sys.stderr)
+            return 1
+        args.baseline.write_text(json.dumps({"schema_version": 1, "rows": now}, indent=1, ensure_ascii=False) + "\n",
+                                 encoding="utf-8", newline="\n")
+        print(f"baseline updated: {args.baseline} now holds {len(now)} rows, "
+              f"{sum(len(r['checks']) for r in now.values())} checks")
+        diff = None
+    print(f"elapsed {elapsed:.1f}s")
+    if passed != len(rows):
+        return 1
+    return 6 if diff else 0
 
 
 if __name__ == "__main__":

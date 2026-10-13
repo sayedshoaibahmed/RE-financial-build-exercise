@@ -1,0 +1,32 @@
+{
+  "id": "G09",
+  "name": "quiet_company",
+  "title": "A flat company: every line within +/-1% of its level for 14 months",
+  "protects": "That flags are not invented on quiet data: no high or medium severity flag at all, while the numbers still compute to the cent.",
+  "plan_ref": "PLAN.md 8.1 G09 (L1 half; the commentary half is L3 and not graded)",
+  "runs": [
+    {
+      "name": "default run",
+      "input": {
+        "company": "fixture:quiet_co",
+        "args": []
+      },
+      "expect": {
+        "exit_code": 0,
+        "status": "OK",
+        "as_of": "2026-02",
+        "facts": {
+          "rep.rev.total.2026-02": "100700.00",
+          "rep.rev.total.mom_pct.2026-02": "1.00",
+          "rep.opinc.2026-02": "50932.00",
+          "rep.rev.total.tw12.2026-02": "1200300.00",
+          "rep.gm_pct.tw12.2026-02": "69.99"
+        },
+        "flags_forbidden": [
+          {"severity": "high"},
+          {"severity": "medium"}
+        ]
+      }
+    }
+  ]
+}

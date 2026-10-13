@@ -1,0 +1,45 @@
+{
+  "id": "G06",
+  "name": "different_company",
+  "title": "A second company with a different chart of accounts, 14 months, newest-first columns",
+  "protects": "That nothing is tied to ABC: a company with other accounts (Sales, Fees/Misc: Setup, Hosting, Rent, a Payroll group, Marketing) and only 14 months runs on its own company.yaml and approved mapping.yaml, reconciles, reads newest-first columns in date order, and has 12-month windows only for months 12-14.",
+  "plan_ref": "PLAN.md 8.1 G06 (synthetic stand-in for sample_co_b; no Other Income section, see README)",
+  "runs": [
+    {
+      "name": "default run",
+      "input": {
+        "company": "fixture:sample_co_b",
+        "args": []
+      },
+      "expect": {
+        "exit_code": 0,
+        "status": "OK",
+        "as_of": "2026-02",
+        "max_period": "2026-02",
+        "facts": {
+          "rep.rev.total.2026-02": "30330.85",
+          "rep.rev.total.mom_pct.2026-02": "3.09",
+          "rep.gm_pct.2026-02": "73.79",
+          "rep.opex.total.2026-02": "14530.75",
+          "rep.opex.nat.payroll_benefits.2026-02": "10230.00",
+          "rep.opinc.2026-02": "7849.70",
+          "rep.rev.total.tw12.2025-12": "304570.20",
+          "rep.rev.total.tw12.2026-01": "312490.20",
+          "rep.rev.total.tw12.2026-02": "320410.20",
+          "rep.opinc.tw12.2026-02": "61586.40",
+          "adj.opinc.tw12.2026-02": "61586.40",
+          "rep.gm_pct.tw12.2026-02": "73.31"
+        },
+        "na": {
+          "rep.rev.total.tw12.2025-01": "insufficient_history",
+          "rep.rev.total.tw12.2025-11": "insufficient_history"
+        },
+        "flags_forbidden": [
+          {"type": "BLOCKED"},
+          {"type": "MISSING_MONTH"},
+          {"type": "NONRECURRING"}
+        ]
+      }
+    }
+  ]
+}

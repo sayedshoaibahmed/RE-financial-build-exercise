@@ -9,3 +9,5 @@ __pycache__/
 *.pyc
 .pytest_cache/
 dist/
+evals/results/latest.json
+evals/results/mutants_latest.json
