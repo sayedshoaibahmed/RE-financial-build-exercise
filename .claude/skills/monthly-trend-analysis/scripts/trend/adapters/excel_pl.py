@@ -89,7 +89,7 @@ class ExcelPLAdapter:
         sec_totals = {s.total: s for s in cfg.sections}
         groups = {g.header: g for g in cfg.groups}
         grp_totals = {g.total: g for g in cfg.groups}
-        derived = set(cfg.derived_rows)
+        derived = set(cfg.derived_rows.names())
 
         records, controls = [], []
         cur_sec = cur_grp = None

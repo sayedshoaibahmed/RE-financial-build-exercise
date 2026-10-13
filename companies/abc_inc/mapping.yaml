@@ -1,0 +1,85 @@
+# Approved by Shoaib on 2026-10-13 (human review of mapping.proposed.yaml, 83 accounts).
+# Only this file is read by the pipeline.
+- {account: "Platform Revenue", section: income, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Partnership Income", section: income, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Professional Services", section: income, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Usage Fees", section: income, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "White-Label", section: income, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "SKU Profiling", section: income, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Customer Success - Payroll benefits", section: cogs, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Customer Success - Workers Comp Insurance", section: cogs, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Customer Success Payroll", section: cogs, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Customer Success Payroll Taxes", section: cogs, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Hosting", section: cogs, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Referral Fees", section: cogs, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Sales Commission", section: cogs, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Accounting & Tax", section: opex, function: g_and_a, nature: contractors_professional_fees, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Advisory Services", section: opex, function: g_and_a, nature: contractors_professional_fees, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Bad Debts", section: opex, function: g_and_a, nature: other_operating, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Bank Service Charges", section: opex, function: g_and_a, nature: other_operating, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Bonus", section: opex, function: people_unallocated, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Consulting", section: opex, function: g_and_a, nature: contractors_professional_fees, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Contribution to Charities", section: opex, function: g_and_a, nature: other_operating, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Depreciation", section: opex, function: g_and_a, nature: depreciation, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Development - Contractor", section: opex, function: r_and_d, nature: contractors_professional_fees, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Development Payroll", section: opex, function: r_and_d, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Employee Training expenses", section: opex, function: people_unallocated, nature: other_operating, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Federal & State Taxes", section: opex, function: non_operating_tax, nature: interest_tax, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "General Expenses", section: opex, function: g_and_a, nature: other_operating, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Health Insurance", section: opex, function: people_unallocated, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Insurance", section: opex, function: g_and_a, nature: other_operating, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Interest Expense", section: opex, function: non_operating_tax, nature: interest_tax, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Interest Income", section: opex, function: non_operating_tax, nature: interest_tax, expected_negative: true, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Legal Expenses", section: opex, function: g_and_a, nature: contractors_professional_fees, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Marketing - Payroll", section: opex, function: sales_marketing, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Marketing - Payroll benefits", section: opex, function: sales_marketing, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Marketing - Payroll Taxes", section: opex, function: sales_marketing, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Marketing - Workers Comp Insurance", section: opex, function: sales_marketing, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Partnerships - Payroll", section: opex, function: sales_marketing, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Partnerships - Payroll benefits", section: opex, function: sales_marketing, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Partnerships - Payroll Taxes", section: opex, function: sales_marketing, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Sales - Payroll", section: opex, function: sales_marketing, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Sales - Payroll benefits", section: opex, function: sales_marketing, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Sales - Payroll Taxes", section: opex, function: sales_marketing, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Sales - Workers Comp Insurance", section: opex, function: sales_marketing, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Marketing/Advertising", section: opex, function: sales_marketing, nature: marketing_events, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Marketing/Advertising: Ad Spend", section: opex, function: sales_marketing, nature: marketing_events, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Marketing/Advertising: Print & Digital", section: opex, function: sales_marketing, nature: marketing_events, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Marketing/Advertising: 3rd Party Content Syndication", section: opex, function: sales_marketing, nature: marketing_events, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Events & Conferences", section: opex, function: sales_marketing, nature: marketing_events, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Marketing/Advertising: Content", section: opex, function: sales_marketing, nature: marketing_events, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Marketing/Advertising: Membership Dues/Subscriptions", section: opex, function: sales_marketing, nature: marketing_events, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Marketing/Advertising: Miscellaneous", section: opex, function: sales_marketing, nature: marketing_events, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Marketing/Advertising: Website", section: opex, function: sales_marketing, nature: marketing_events, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Marketing/Advertising: Partner Marketing", section: opex, function: sales_marketing, nature: marketing_events, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Meals & Entertainment", section: opex, function: g_and_a, nature: travel_entertainment, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Merchant fees", section: opex, function: g_and_a, nature: other_operating, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Office Expenses", section: opex, function: g_and_a, nature: facilities_office, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Operating Payroll", section: opex, function: operations, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Operations - Payroll benefits", section: opex, function: operations, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Operations - Workers Comp Insurance", section: opex, function: operations, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Operations Payroll Taxes", section: opex, function: operations, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Payroll Service Fee", section: opex, function: people_unallocated, nature: other_operating, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Postage & Delivery", section: opex, function: g_and_a, nature: facilities_office, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Printing & Stationery", section: opex, function: g_and_a, nature: facilities_office, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Product - Payroll benefits", section: opex, function: r_and_d, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Product - Workers Comp Insurance", section: opex, function: r_and_d, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Product Payroll Taxes", section: opex, function: r_and_d, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Professional Fees", section: opex, function: g_and_a, nature: contractors_professional_fees, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Recruiting Expense", section: opex, function: people_unallocated, nature: other_operating, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Rent", section: opex, function: g_and_a, nature: facilities_office, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Sales & Marketing - Contractor", section: opex, function: sales_marketing, nature: contractors_professional_fees, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Sales & Marketing - Workers Comp Insurance", section: opex, function: sales_marketing, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Sales & Marketing Payroll", section: opex, function: sales_marketing, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Sales & Marketing Payroll Taxes", section: opex, function: sales_marketing, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Sales and Marketing - Payroll benefits", section: opex, function: sales_marketing, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Severance", section: opex, function: people_unallocated, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Software & SaaS", section: opex, function: technology, nature: software_technology, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Telephone & Internet", section: opex, function: g_and_a, nature: software_technology, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Travel", section: opex, function: g_and_a, nature: travel_entertainment, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Partnerships Commission", section: opex, function: sales_marketing, nature: commissions, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Workers Compensation Insurance", section: opex, function: people_unallocated, nature: payroll_benefits, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Stock-Based Compensation Expense", section: opex, function: stock_based_comp, nature: stock_based_comp, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Sales & Marketing - Travel, Meals & Entertainment", section: opex, function: sales_marketing, nature: travel_entertainment, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "Income Tax Benefit", section: opex, function: non_operating_tax, nature: interest_tax, expected_negative: true, approved_by: "Shoaib", approved_on: 2026-10-13}
+- {account: "AI Token Cost", section: opex, function: technology, nature: software_technology, approved_by: "Shoaib", approved_on: 2026-10-13}

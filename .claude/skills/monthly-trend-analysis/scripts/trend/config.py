@@ -9,7 +9,7 @@ from pathlib import Path
 import yaml
 
 SECTION_KINDS = ("income", "cogs", "opex", "other_income", "other_expense")
-TOP_LEVEL_KEYS = {"source"}
+TOP_LEVEL_KEYS = {"source", "categories_extra"}
 
 
 class ConfigError(Exception):
@@ -29,6 +29,20 @@ class GroupCfg:
     total: str
 
 
+DERIVED_ROLES = ("gross_profit", "operating_income", "net_income")
+
+
+@dataclass(frozen=True)
+class DerivedRows:
+    """Workbook rows that are computed by the sheet itself. Each role is optional."""
+    gross_profit: str = None
+    operating_income: str = None
+    net_income: str = None
+
+    def names(self):
+        return tuple(n for n in (self.gross_profit, self.operating_income, self.net_income) if n)
+
+
 @dataclass(frozen=True)
 class SourceConfig:
     type: str
@@ -40,14 +54,21 @@ class SourceConfig:
     period_header_format: str
     sections: tuple
     groups: tuple
-    # Convention (PLAN 3.2 lists names only): [Gross Profit, Operating Income, Net Income], in that order.
-    derived_rows: tuple
+    derived_rows: DerivedRows
+
+
+@dataclass(frozen=True)
+class CategoriesExtra:
+    """Company-specific additions to the shared vocabulary (reference/categories.yaml)."""
+    functions: tuple = ()
+    natures: tuple = ()
 
 
 @dataclass(frozen=True)
 class Company:
     company_id: str
     source: SourceConfig
+    categories_extra: CategoriesExtra = CategoriesExtra()
 
 
 def _mapping(v, where):
@@ -101,7 +122,7 @@ def parse_source(raw, base_dir):
     raw = _mapping(raw, w)
     _check_keys(raw, {"type", "path", "sheet", "header_row", "section_label_col", "account_label_col",
                       "period_header_format", "sections", "groups", "derived_rows"},
-                {"type", "path", "sheet", "header_row", "sections", "derived_rows"}, w)
+                {"type", "path", "sheet", "header_row", "sections"}, w)
     if _str(raw, "type", w) != "excel_pl":
         raise ConfigError(f"{w}.type: only 'excel_pl' is supported here, got {raw['type']!r}")
     hr = raw["header_row"]
@@ -128,14 +149,17 @@ def parse_source(raw, base_dir):
     grps = _list_of_maps(raw, "groups", w, {"header", "total"}, {"header", "total"})
     groups = [GroupCfg(_str(g, "header", f"{w}.groups[{i}]"), _str(g, "total", f"{w}.groups[{i}]"))
               for i, g in enumerate(grps)]
-    der = raw["derived_rows"]
-    if not isinstance(der, list) or len(der) != 3 or not all(isinstance(x, str) and x.strip() for x in der):
-        raise ConfigError(f"{w}.derived_rows: expected exactly 3 names, in order "
-                          "[Gross Profit, Operating Income, Net Income]")
-    derived = tuple(x.strip() for x in der)
+    der = raw.get("derived_rows", {})
+    if isinstance(der, list):
+        raise ConfigError(f"{w}.derived_rows: the list format is no longer supported; use a mapping of "
+                          'optional roles, e.g. {gross_profit: "Gross Profit", operating_income: '
+                          '"Operating Income", net_income: "Net Income"}')
+    der = _mapping(der, f"{w}.derived_rows")
+    _check_keys(der, set(DERIVED_ROLES), set(), f"{w}.derived_rows")
+    derived = DerivedRows(**{k: _str(der, k, f"{w}.derived_rows") for k in der})
 
     labels = ([s.header for s in sections] + [s.total for s in sections] +
-              [g.header for g in groups] + [g.total for g in groups] + list(derived))
+              [g.header for g in groups] + [g.total for g in groups] + list(derived.names()))
     dup = sorted({x for x in labels if labels.count(x) > 1})
     if dup:
         raise ConfigError(f"{w}: label(s) declared more than once: {', '.join(map(repr, dup))}")
@@ -145,6 +169,27 @@ def parse_source(raw, base_dir):
         p = Path(base_dir) / p
     return SourceConfig("excel_pl", p, _str(raw, "sheet", w), hr, sec_col, acc_col, fmt,
                         tuple(sections), tuple(groups), derived)
+
+
+def parse_categories_extra(raw):
+    from .categories import load_vocabulary  # local import: categories reads files
+
+    w = "categories_extra"
+    raw = _mapping(raw, w)
+    _check_keys(raw, {"functions", "natures"}, set(), w)
+    vals = {}
+    for k in ("functions", "natures"):
+        v = raw.get(k, [])
+        if not isinstance(v, list) or not all(isinstance(x, str) for x in v):
+            raise ConfigError(f"{w}.{k}: expected a list of ids")
+        if len(set(v)) != len(v):
+            raise ConfigError(f"{w}.{k}: duplicate ids")
+        vals[k] = tuple(v)
+    try:
+        load_vocabulary(vals["functions"], vals["natures"])
+    except ValueError as e:
+        raise ConfigError(str(e)) from e
+    return CategoriesExtra(**vals)
 
 
 def load_company(company_dir, base_dir=None):
@@ -161,4 +206,5 @@ def load_company(company_dir, base_dir=None):
     raw = _mapping(raw, str(f))
     _check_keys(raw, TOP_LEVEL_KEYS, {"source"}, "company.yaml")
     base = Path(base_dir) if base_dir else company_dir.parent.parent
-    return Company(company_dir.name, parse_source(raw["source"], base))
+    extra = parse_categories_extra(raw["categories_extra"]) if "categories_extra" in raw else CategoriesExtra()
+    return Company(company_dir.name, parse_source(raw["source"], base), extra)

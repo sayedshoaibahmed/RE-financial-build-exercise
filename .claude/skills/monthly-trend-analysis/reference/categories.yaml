@@ -1,0 +1,65 @@
+# Machine-readable category vocabulary (PLAN 4.4, assumption A19). Read by trend/categories.py.
+# A mapping.yaml entry may only use the `id` values below (plus any a company adds explicitly
+# under `categories_extra:` in company.yaml). Human-readable version: categories.md.
+# If the firm supplies its own chart of categories, replace this file and re-approve the mappings.
+
+functions:
+  - id: r_and_d
+    label: R&D
+    definition: Product and engineering people and contractors, with their payroll taxes, benefits and workers' comp.
+  - id: sales_marketing
+    label: Sales & Marketing
+    definition: Sales, marketing and partnerships people and contractors, advertising, events, partner commissions and S&M travel.
+  - id: operations
+    label: Operations
+    definition: Operating (delivery/support) payroll with its taxes, benefits and workers' comp.
+  - id: people_unallocated
+    label: People (unallocated)
+    definition: Company-wide people costs not attributable to one function (bonus, health insurance, recruiting, training, severance); no headcount data to allocate them.
+  - id: technology
+    label: Technology
+    definition: Software, SaaS and AI/compute vendor costs that run the business.
+  - id: g_and_a
+    label: G&A
+    definition: General and administrative costs - professional fees, rent, insurance, office, banking and merchant fees, bad debts, depreciation, general travel and meals.
+  - id: non_operating_tax
+    label: Non-operating & tax
+    definition: Interest income and expense and income taxes. The workbook presents these inside operating expenses; they are shown as their own category, not reclassified.
+  - id: stock_based_comp
+    label: Stock-based compensation
+    definition: Non-cash equity compensation expense.
+
+natures:
+  - id: payroll_benefits
+    label: Payroll & benefits
+    definition: All payroll, payroll-tax, benefits and workers' comp lines across functions, plus bonus, health insurance and severance.
+  - id: contractors_professional_fees
+    label: Contractors & professional fees
+    definition: Contractors and outside professional services (accounting, legal, advisory, consulting).
+  - id: marketing_events
+    label: Marketing & events
+    definition: Advertising, partner marketing, events and conferences.
+  - id: software_technology
+    label: Software & technology
+    definition: Software and SaaS subscriptions, AI token cost, telephone and internet.
+  - id: travel_entertainment
+    label: Travel & entertainment
+    definition: Travel, meals and entertainment.
+  - id: facilities_office
+    label: Facilities & office
+    definition: Rent, office supplies, postage and printing.
+  - id: commissions
+    label: Commissions
+    definition: Sales and partner commissions.
+  - id: other_operating
+    label: Other operating
+    definition: Operating costs that fit no other nature - bank and merchant fees, bad debts, insurance, charities, training, recruiting, payroll service fees, general expenses.
+  - id: depreciation
+    label: Depreciation
+    definition: Depreciation of fixed assets.
+  - id: stock_based_comp
+    label: Stock-based compensation
+    definition: Non-cash equity compensation expense.
+  - id: interest_tax
+    label: Interest & tax
+    definition: Interest income and expense and income taxes.

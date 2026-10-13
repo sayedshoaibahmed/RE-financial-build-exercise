@@ -13,4 +13,4 @@ source:
   groups:
     - {header: "S & M Payroll", total: "Total S & M Payroll"}
     - {header: "Marketing",     total: "Total Marketing"}
-  derived_rows: ["Gross Profit", "Operating Income", "Net Income"]
+  derived_rows: {gross_profit: "Gross Profit", operating_income: "Operating Income", net_income: "Net Income"}

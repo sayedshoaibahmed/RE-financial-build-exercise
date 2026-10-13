@@ -29,7 +29,8 @@ SOURCE = {
         {"header": "Operating Expenses", "total": "Total Operating Expenses", "kind": "opex"},
     ],
     "groups": [{"header": "Payroll", "total": "Total Payroll"}],
-    "derived_rows": ["Gross Profit", "Operating Income", "Net Income"],
+    "derived_rows": {"gross_profit": "Gross Profit", "operating_income": "Operating Income",
+                     "net_income": "Net Income"},
 }
 
 OTHER_SECTIONS = [
