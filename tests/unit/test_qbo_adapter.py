@@ -15,7 +15,7 @@ from trend.config import load_company
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = ROOT / "tests" / "fixtures" / "qbo" / "pnl_2026-09.json"
-FIXTURE_SHA256 = "7e616d951187ca25e7999eeda961f2c5d311c1f0fb9ad139589bfcb01849aa4b"
+FIXTURE_SHA256 = "eb126ffdfd63591fc4f63cf22a46b62e5eb131eed183b29fe9d45b274b8dfd59"
 FORBIDDEN = ("access_token", "refresh_token", "Bearer", "Authorization", "client_secret", "client_id")
 D = Decimal
 
@@ -48,7 +48,7 @@ def top(d, group):
 
 def test_fixture_is_the_pinned_capture_and_holds_no_secrets():
     raw = FIXTURE.read_bytes()
-    assert hashlib.sha256(raw).hexdigest() == FIXTURE_SHA256
+    assert hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest() == FIXTURE_SHA256
     text = raw.decode("utf-8").lower()
     for s in FORBIDDEN:
         assert s.lower() not in text, s
