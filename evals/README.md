@@ -94,7 +94,8 @@ These rules check the mechanics, not the quality. A draft can pass them and stil
 
 - **Live prose quality.** The suite does not judge hedging, materiality order, whether the reviewer questions are
   useful, or how well the commentary handles the reported and adjusted bases. That judgement is PLAN's L3: a pinned
-  rubric scored by a model. L3 is not part of this suite and is not automated.
+  rubric scored by a model. L3 is not part of this suite and is not automated. A one-off manual run, ungated and
+  not in `run_evals.py` or the baseline, is in `evals\l3\` (see `evals\l3\README.md`).
 - **The commentary Claude writes in a live session.** The suite grades fixed drafts only.
 - **Workbook layout and formatting.** `trend_pack.xlsx` is covered by the unit tests, not here.
 
@@ -104,7 +105,7 @@ Cases G01-G12 follow PLAN 8.1. Cases X01-X03 are extra cases that PLAN does not 
 not collide with PLAN's ids.
 
 **Implemented:** G01, G02, G03, G04, G05, G06, G07, G08, G09, G11, G12 (11 of 12), plus X01-X03.
-**Not built:** G10 qbo_parity, because the QBO adapter (P9) is not built, so there is nothing to compare.
+**Not built:** G10 qbo_parity. The QBO adapter (P9) exists and is tested at record level (`tests\unit\test_qbo_adapter.py`), but it is not wired into the CLI, so there is nothing for an eval case to drive.
 
 | Id | What it protects |
 |---|---|
@@ -124,7 +125,7 @@ not collide with PLAN's ids.
 | X03 digest_tamper | One digit changed in `digest.json` after `run` -> exactly DIGEST_TAMPERED; the earlier `commentary.md` is deleted |
 
 **Not built, or built only in part:**
-- G10 qbo_parity: not built; the QBO adapter is not built.
+- G10 qbo_parity: not built; the QBO adapter exists at record level only and is not wired into the CLI.
 - G06: PLAN's `sample_co_b` has an "Other Income" section; the synthetic company has none, because the independent
   oracle (`tests/oracle.py`) models only Income, COGS and Operating Expenses. No good draft exists for it, so its
   grounding half (L2) is not run.

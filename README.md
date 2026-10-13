@@ -97,16 +97,18 @@ Optional extras: `python evals\run_mutants.py` (mutation testing, about 5 minute
 
 | Claim | Status | Evidence (raw output, 2026-10-13) |
 |---|---|---|
-| Root unit tests (skill, adapter, metrics, flags, grounding, CLI, permissions) | TESTED | `762 passed in 159.52s`, run from the repo root |
+| Root unit tests (skill, adapter, metrics, flags, grounding, CLI, permissions) | TESTED | `822 passed in 290.53s (0:04:50)`, run from the repo root |
 | Root pytest does not collect `connector\` | TESTED | `pytest --collect-only` lists 0 items containing "connector" |
 | Eval suite: 11 golden cases, 3 extra cases, commentary grading, guards | TESTED | `26/26 passed (313 checks, 0 failed)`, baseline: no differences |
 | Mutation testing: 13 mutants | TESTED (last run recorded in `evals\README.md`) | 12 killed, 1 accepted survivor (an equivalent mutant) |
 | Connector offline tests (mocked HTTP, from the copy in `connector\`) | TESTED | `121 passed in 3.31s` using `connector\.venv` |
 | Connector against a live QuickBooks Sandbox | Done by the author on 2026-10-12 through Claude Desktop; reviewers have not repeated it | see `connector\README.md` |
+| QuickBooks P&L report adapter for the skill (`adapters\qbo_report.py`), record level | TESTED at record level only; NOT wired into `trend_cli.py`, `config.py` or `pipeline.py`, so the skill still runs on Excel only | 42 tests in `tests\unit\test_qbo_adapter.py`; one real sandbox capture (`tests\fixtures\qbo\pnl_2026-09.json`) reconciles to its own Summary rows to the cent; ABC rebuilt as 18 monthly QBO-shape files gives 1,494 of 1,494 records identical to the Excel adapter (source and source_ref excluded). Eval case G10 is not built. The adapter is not mutation-tested (UNTESTED) |
+| L3 model-judged commentary review (`evals\l3\`) | Manual, run once, ungated; not part of `run_evals.py`, pytest or the baseline. The result is a model's opinion, not ground truth | 13 drafts (2 good, 9 bad, 2 live), 3 blind judge passes, judge is Claude (self-reported claude-opus-5-5, UNVERIFIED), rubric written before scoring and not edited. 5 of the 7 bad drafts that had a target criterion scored below both good drafts on it; 2 only tied with one. Neither good draft scored 3 or more on every criterion: the rubric asks for coverage of all high and medium flags in materiality order, and the good draft covers only the as-of month. That mismatch is documented, not tuned away |
 | Balance sheet totals from the connector vs the QuickBooks screen | TESTED (one date) | 2026-10-13, accrual, sandbox company: Total Assets 23,436.29, Total Liabilities 31,131.33, Total Equity -7,695.04 matched the QuickBooks Balance Sheet screen; checked by hand through Claude Desktop, not repeated by reviewers |
 
 Why two pytest runs: the root `pytest.ini` limits collection to `tests\` and skips `connector`
-and `evals`, so the root count (762) and the connector count (121) never overlap.
+and `evals`, so the root count (822) and the connector count (121) never overlap.
 
 ## Using the QuickBooks server
 
@@ -130,7 +132,8 @@ refuses to start unless the environment is `sandbox`. It exposes four read-only 
 - Permissions are a second layer, not a sandbox. The deny rules in `.claude\settings.json` for Read, Edit and Write were TESTED live in Claude Code sessions. Deny rules do not bind subprocesses: a python or shell call can still change files. So this is a guard against careless edits, not a sandbox. (UNTESTED as a security boundary.)
 - The manifest guards careless edits only. It does not stop a deliberate change. (TESTED for careless edits; UNTESTED against deliberate ones.)
 - Chat answers are guided by an instruction in `SKILL.md`. Code does not check them. Only the written commentary is checked by the grounding rules.
-- The QuickBooks adapter for the trend skill is not built. The skill reads Excel only, so eval case G10 (QBO parity) is not built either. The connector and the skill are not wired together.
+- A QuickBooks P&L report adapter for the trend skill exists (`adapters\qbo_report.py`) and is TESTED at record level only. It is not wired into `trend_cli.py`, `config.py` or `pipeline.py`, so the skill still runs on Excel only, eval case G10 (QBO parity) is not built, and the adapter is not mutation-tested (UNTESTED). The connector and the skill are not wired together.
+- A company with the same account label under two paths (the sandbox company does this) would be BLOCKED at the mapping stage with AMBIGUOUS_ACCOUNT. Read from the code of `mapping.py`; UNTESTED end to end.
 - Reuse on a second real company is UNTESTED. Two synthetic companies are tested (evals G06 and G09), not a real second workbook.
-- Live prose quality is not graded. The suite checks the mechanics of commentary (numbers, banner, banned words, length), not whether it reads well.
+- Live prose quality is not graded by the suite, which checks only the mechanics of commentary (numbers, banner, banned words, length). It was reviewed once by hand with a model judge (`evals\l3\`); that review is manual, ungated and a model's opinion, not ground truth.
 - Connector secrets are plaintext files protected only by Windows user permissions (see `connector\README.md`).

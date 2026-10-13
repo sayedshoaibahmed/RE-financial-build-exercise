@@ -1,4 +1,5 @@
 # PLAN — Task 2: Monthly Trend Analysis Skill
+> Status note (13 Oct 2026): this is the plan written before the build. Where it differs from what was built, the final state is in README.md, evals\README.md and ARCHITECTURE.md. Known differences: (1) G03 - the relabelled "Total Marketing" row is blocked earlier than planned, with UNCLASSIFIED_ROW, not by control C6; (2) the QuickBooks adapter for the trend skill (P9) is built and tested at record level only, not wired into the CLI, and eval case G10 was not built; (3) the model-judged prose review (L3) was run once by hand, results in evals\l3\, and is not automated; (4) mutant M06b was added to M01-M12. Test and eval counts quoted below are from earlier phases.
 
 RE Financial Services build exercise · ABC Inc workbook · Submission: zip + GitHub link, **16 Oct 2026**
 
