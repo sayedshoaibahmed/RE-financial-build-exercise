@@ -1,10 +1,8 @@
 {
   "permissions": {
-    "ask": [
-      "Edit(/companies/**/mapping.yaml)",
-      "Edit(/companies/**/company.yaml)"
-    ],
     "deny": [
+      "Edit(/companies/**/mapping.yaml)",
+      "Edit(/companies/**/company.yaml)",
       "Read(**/metrics.json)",
       "Read(**/trend_pack.xlsx)",
       "Read(/data/**)",

@@ -12,11 +12,11 @@ SETTINGS = ROOT / ".claude" / "settings.json"
 SKILL = ROOT / ".claude" / "skills" / "monthly-trend-analysis"
 SKILL_TEXT = (SKILL / "SKILL.md").read_text(encoding="utf-8")
 
-EXPECTED_ASK = {
+CONFIG_EDIT_RULES = {                    # a human edits these, never Claude: deny, not ask (P7e)
     "Edit(/companies/**/mapping.yaml)",
     "Edit(/companies/**/company.yaml)",
 }
-EXPECTED_DENY = {
+EXPECTED_DENY = CONFIG_EDIT_RULES | {
     "Read(**/metrics.json)",
     "Read(**/trend_pack.xlsx)",
     "Read(/data/**)",
@@ -87,12 +87,13 @@ def test_settings_json_exists_parses_and_holds_only_permissions():
     assert raw.isascii() and not raw.startswith("﻿")
     data = json.loads(raw)
     assert set(data) == {"permissions"}                                   # no hooks, env or other settings
-    assert set(data["permissions"]) == {"ask", "deny"}                    # and no allow rules
+    assert set(data["permissions"]) == {"deny"}                           # no allow rules, and no ask rules
 
 
 def test_rule_groups_are_exactly_the_requested_ones():
     p = load()["permissions"]
-    assert set(p["ask"]) == EXPECTED_ASK and len(p["ask"]) == len(EXPECTED_ASK)         # set comparison, no duplicates
+    assert not p.get("ask")                                                              # nothing is left on "ask"
+    assert CONFIG_EDIT_RULES <= set(p["deny"]) and not CONFIG_EDIT_RULES & set(p.get("ask", []))
     assert set(p["deny"]) == EXPECTED_DENY and len(p["deny"]) == len(EXPECTED_DENY)
 
 
@@ -100,13 +101,13 @@ def test_only_edit_and_read_rules_are_used_because_write_rules_are_never_consult
     # docs: "Claude Code checks file permissions against Edit(path) and Read(path) rules only. A path rule for Write ... is
     # accepted but never consulted" and warns at startup. Edit rules apply to all built-in tools that edit files.
     p = load()["permissions"]
-    for r in p["ask"] + p["deny"]:
+    for r in p.get("ask", []) + p["deny"]:
         assert re.fullmatch(r"(Edit|Read)\([^()]+\)", r), r
-    assert not [r for r in p["ask"] + p["deny"] if r.startswith(("Write(", "MultiEdit(", "Glob(", "NotebookEdit("))]
+    assert not [r for r in p.get("ask", []) + p["deny"] if r.startswith(("Write(", "MultiEdit(", "Glob(", "NotebookEdit("))]
 
 
 def test_rules_carry_no_secrets_and_are_plain_paths():
-    for r in load()["permissions"]["ask"] + load()["permissions"]["deny"]:
+    for r in load()["permissions"].get("ask", []) + load()["permissions"]["deny"]:
         assert not re.search(r"(?i)(secret|password|api[_-]?key|bearer|sk-)[^/]*[:=]", r), r
         assert "\\" not in r                                               # POSIX form, as the docs require on Windows
 
@@ -138,14 +139,14 @@ def test_matcher_examples(rule, tool, path, want):
 
 # ---------------------------------------------------------------- the rules protect what they are meant to protect
 
-def test_company_files_ask_but_the_proposal_and_templates_stay_writable():
-    ask = load()["permissions"]["ask"]
+def test_company_files_are_denied_but_the_proposal_and_templates_stay_writable():
+    deny = load()["permissions"]["deny"]
     for name in ("mapping.yaml", "company.yaml"):
-        assert covered(ask, "Edit", f"companies/abc_inc/{name}")
+        assert covered(deny, "Edit", f"companies/abc_inc/{name}")
     for ok in ("companies/abc_inc/mapping.proposed.yaml", ".claude/skills/monthly-trend-analysis/templates/company.template.yaml",
                ".claude/skills/monthly-trend-analysis/templates/mapping.template.yaml"):
-        assert not covered(ask, "Edit", ok), ok                            # Claude must be able to write proposals
-    assert not covered(load()["permissions"]["deny"], "Edit", "companies/abc_inc/mapping.yaml")   # ask, not deny
+        assert not covered(deny, "Edit", ok), ok                           # Claude must be able to write proposals
+    assert not covered(deny, "Read", "companies/abc_inc/mapping.yaml")     # reading stays allowed
 
 
 def test_generated_and_secret_files_cannot_be_read():
@@ -197,7 +198,7 @@ TEXT_ONLY = set()      # digest.json was a gap until P7c added Edit(**/digest.js
 
 def test_every_path_named_in_the_never_rules_has_a_matching_ask_or_deny_rule_or_is_a_listed_gap():
     p = load()["permissions"]
-    rules = p["ask"] + p["deny"]
+    rules = p.get("ask", []) + p["deny"]
     named = never_paths()
     assert {"mapping.yaml", "company.yaml", "metrics.json", "trend_pack.xlsx", "digest.json",
             "reference/commentary_rules.yaml"} <= named, named
