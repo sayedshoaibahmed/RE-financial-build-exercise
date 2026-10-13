@@ -1,5 +1,5 @@
 # PLAN — Task 2: Monthly Trend Analysis Skill
-> Status note (13 Oct 2026): this is the plan written before the build. Where it differs from what was built, the final state is in README.md, evals\README.md and ARCHITECTURE.md. Known differences: (1) G03 - the relabelled "Total Marketing" row is blocked earlier than planned, with UNCLASSIFIED_ROW, not by control C6; (2) the QuickBooks adapter for the trend skill (P9) is built and tested at record level only, not wired into the CLI, and eval case G10 was not built; (3) the model-judged prose review (L3) was run once by hand, results in evals\l3\, and is not automated; (4) mutant M06b was added to M01-M12. Test and eval counts quoted below are from earlier phases.
+> Status note (13 Oct 2026): this is the plan written before the build. Where it differs from what was built, the final state is in README.md, evals\README.md and ARCHITECTURE.md. Known differences: (1) G03 - the relabelled "Total Marketing" row is blocked earlier than planned, with UNCLASSIFIED_ROW, not by control C6; (2) the QuickBooks adapter for the trend skill (P9) is built and tested at record level only, not wired into the CLI, and eval case G10 was not built; (3) the model-judged prose review (L3) was run once by hand, results in evals\l3\, and is not automated; (4) mutant M06b was added to M01-M12. Test and eval counts quoted below are from earlier phases. Labels in this file (UNTESTED, UNVERIFIED, TESTED) describe the state when the plan was written, not the final state; README.md has the final status of every claim.
 
 RE Financial Services build exercise · ABC Inc workbook · Submission: zip + GitHub link, **16 Oct 2026**
 
@@ -716,7 +716,7 @@ At least 10 cases survive any cut combination: G12 and G10 are the only cuttable
 | A12 | COGS as booked (Sales Commission, Referral Fees, Customer Success payroll in COGS). Groupings apply to opex only; COGS lines stay as detail. |
 | A13 | Cached workbook values are authoritative; reconciliation proves agreement with the lines. |
 | A14 | Further firm answers become config changes. |
-| A15 | QBO monthly data = one `get_profit_and_loss_tool` call per month (**TESTED (schema)**). Capturing one live response on Day 2 needs the Task 1 connector working that day (it did on 12–13 Oct, per your report; UNVERIFIED for Day 2). |
+| A15 | QBO monthly data = one `get_profit_and_loss_tool` call per month (**TESTED (schema)**). Capturing one live response on Day 2 needs the Task 1 connector working that day (it did, on 12–13 Oct). |
 | A16 | L3 is run manually in Claude Code; automation would need an API key in an environment variable, never committed. |
 | A17 | About 9 focused hours per day, 13–16 Oct. |
 | A18 | Deadline time of day unknown → submit by 18:00 IST on 16 Oct. |
