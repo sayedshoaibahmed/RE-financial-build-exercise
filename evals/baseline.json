@@ -411,6 +411,16 @@
     "commentary.md not written": "PASS"
    }
   },
+  "C-g5_missing_adjusted_pair": {
+   "source_sha256": "b3623b866cf7c11575e367239f186387225c4ae859af6facfe03d27d6b11845d",
+   "result": "PASS",
+   "checks": {
+    "file name says its code": "PASS",
+    "exit 4": "PASS",
+    "failure codes exactly [G5]": "PASS",
+    "commentary.md not written": "PASS"
+   }
+  },
   "C-g5_missing_coverage": {
    "source_sha256": "d560347105246a4486709ea2d255759d9f287b1b3fa31b55633764cb3c381696",
    "result": "PASS",

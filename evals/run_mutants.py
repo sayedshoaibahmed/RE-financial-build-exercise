@@ -14,7 +14,8 @@ The real repo is never edited. .claude/skills, companies, tests and evals/cases 
 run (__pycache__ ignored); any change fails the run loudly.
 
 Prints a kill matrix and writes evals/results/mutants_latest.json.
-Exit 0: every mutant applied and killed. 1: a mutant SURVIVED or was NOT APPLIED. 3: a protected file changed.
+Exit 0: every mutant killed except those in ACCEPTED_SURVIVORS (which must still survive). 1: any other mutant
+SURVIVED, was NOT APPLIED or errored, or an accepted survivor is now killed. 3: a protected file changed.
 4: the control run failed. 2: bad arguments.
 """
 import argparse
@@ -101,12 +102,11 @@ MUTANTS = [
             "    for a in []:  # MUTANT M12\n        row = next(")]),
 ]
 
-# Shown only if the mutant survives: why no case can see it (checked by hand, see evals/README.md).
-SURVIVAL_NOTES = {
-    "M06": "equivalent mutant: metrics.compute_metrics sorts periods itself, so record order from the adapter never "
-           "reaches a number (M06b removes both sorts)",
-    "M12": "no draft in the suite omits the Dec 2025 reported/adjusted operating income pair: g5_missing_coverage drops "
-           "an as-of flag citation instead, and the good drafts cite the pair",
+# Mutants allowed to survive, each with the reason no case can see it (see evals/README.md). Anything else that
+# survives fails the run; so does an accepted survivor that is now killed, so this list gets cleaned up.
+ACCEPTED_SURVIVORS = {
+    "M06": "equivalent mutant: metrics.compute_metrics re-sorts periods itself, so record order from the adapter never "
+           "reaches a number; M06b (no sort anywhere) covers the real change",
 }
 
 
@@ -164,7 +164,7 @@ def run_one(mid, edits, base):
         return {"id": mid, "status": "ERROR", "reason": f"the eval runner wrote no results: {err}", "killers": [],
                 "seconds": round(secs, 1)}
     return {"id": mid, "status": "KILLED" if failing else "SURVIVED", "killers": failing, "seconds": round(secs, 1),
-            "reason": "" if failing else SURVIVAL_NOTES.get(mid, "no row failed")}
+            "reason": "" if failing else ACCEPTED_SURVIVORS.get(mid, "no row failed")}
 
 
 def main(argv):
@@ -229,7 +229,20 @@ def main(argv):
                                    "mutants": [{**results[m[0]], "plan": m[1], "plan_killers": m[2]} for m in chosen]},
                                   indent=1) + "\n", encoding="utf-8", newline="\n")
     print(f"wrote {RESULTS.relative_to(ROOT)}")
-    return 0 if count["KILLED"] == len(chosen) else 1
+
+    accepted = [m for m in chosen if m[0] in ACCEPTED_SURVIVORS]
+    print("\nACCEPTED SURVIVORS (allowed to survive, with reason):" + ("" if accepted else " none selected"))
+    for mid, *_ in accepted:
+        print(f"  {mid}  {results[mid]['status']:<11}  {ACCEPTED_SURVIVORS[mid]}")
+    unexpected = [m for m, r in results.items() if r["status"] != "KILLED" and m not in ACCEPTED_SURVIVORS]
+    stale = [m for m, r in results.items() if m in ACCEPTED_SURVIVORS and r["status"] != "SURVIVED"]
+    if unexpected:
+        print(f"FAIL: not killed and not accepted: {', '.join(unexpected)}")
+    if stale:
+        print(f"FAIL: accepted survivor(s) no longer survive ({', '.join(stale)}): remove them from ACCEPTED_SURVIVORS")
+    if not unexpected and not stale:
+        print("OK: every mutant killed except the accepted survivors")
+    return 1 if unexpected or stale else 0
 
 
 if __name__ == "__main__":

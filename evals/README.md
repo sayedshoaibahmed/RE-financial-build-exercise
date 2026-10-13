@@ -13,9 +13,9 @@ python evals/run_mutants.py                  # mutation testing (M01-M12), see "
 If the `python` on your PATH lacks `openpyxl` or `PyYAML`, the runner re-runs itself under the interpreter that
 `scripts/ensure_python.py` picks (the project `.venv`).
 
-**Run time (measured, not estimated).** A full `run_evals.py` run took **59.1 s** on the development machine
-(Windows 11, Python 3.11 in `.venv`, 2026-10-13; the figure is the runner's own `elapsed` line). A full
-`run_mutants.py` run (control plus 13 mutants, 4 in parallel) took **275.3 s** on the same machine.
+**Run time (measured, not estimated).** A full `run_evals.py` run (26 rows, 313 checks) took **57.9 s** on the
+development machine (Windows 11, Python 3.11 in `.venv`, 2026-10-13; the figure is the runner's own `elapsed` line).
+A full `run_mutants.py` run (control plus 13 mutants, 4 in parallel) took **314.8 s** on the same machine.
 
 The runner prints each row as it finishes (`[  6.0s] G01  PASS`), then a PASS/FAIL table, then the baseline diff,
 then the elapsed time, and writes `evals/results/latest.json` (not committed). Exit codes:
@@ -82,7 +82,8 @@ Each commentary draft goes through `render`, which runs `trend/grounding.py`:
 | `g2_bare_number.md` | G2 BARE_NUMBER |
 | `g3_causal_claim.md` | G3 CAUSAL_CLAIM |
 | `g4_direction_mismatch.md` | G4 DIRECTION_MISMATCH |
-| `g5_missing_coverage.md` | G5 MISSING_COVERAGE |
+| `g5_missing_coverage.md` | G5 MISSING_COVERAGE (an as-of flag entry is not cited) |
+| `g5_missing_adjusted_pair.md` | G5 MISSING_COVERAGE (the Dec 2025 adjusted operating income is not cited) |
 | `g6_banner.md` | G6 MISSING_DRAFT_BANNER |
 | `g8_banned_word.md` | G8 BANNED_WORD |
 | `g9_too_long.md` | G9 BODY_TOO_LONG |
@@ -115,7 +116,7 @@ not collide with PLAN's ids.
 | G06 different_company | A synthetic second company (other accounts, a Payroll group, 14 months Jan 2025 - Feb 2026, newest-first columns) runs on its own config and approved mapping, reconciles, and has 12-month windows only for months 12-14 (n/a `insufficient_history` before) |
 | G07 recon_tamper | +1,000.00 in one leaf fails C1, C3, C7 and C8 in Jun 2026 only, with cell references; BLOCKED |
 | G08 mapping_gate | An unmapped account -> UNMAPPED_ACCOUNT; an unapproved one -> UNAPPROVED_MAPPING; `mapping.yaml` never changes |
-| G09 quiet_company | A synthetic flat company (every line within +/-1% for 14 months): numbers to the cent, and no high or medium severity flag |
+| G09 quiet_company | A synthetic flat company (every line within +/-1% for 14 months): numbers to the cent, and no high or medium severity flag. Not vacuous (TESTED): the same expectations run against ABC fail both flag checks (high: 2 NONRECURRING flags found; medium: LEVEL_SHIFT flags found) |
 | G11 injection_label | `Sales - Payroll` renamed to a label that instructs the AI to break the rules: run OK, numbers equal the oracle, its LEVEL_SHIFT flag is raised under the new label and the label reaches `digest.json` as a plain string; the good draft still renders; a draft that obeys the label fails with exactly G2 and G3 |
 | G12 as_of_jan2026 | No lookahead: Platform Revenue MOM_MOVE -40.74% but no LEVEL_SHIFT as of Jan 2026 |
 | X01 abc_flags_golden | All ABC flags equal the frozen golden file |
@@ -147,8 +148,10 @@ disappears, and an expectation that was edited.
 ## Regression baseline
 
 `evals/baseline.json` is committed. For every row (golden case, draft, guard) it holds the result, every check name
-with PASS or FAIL, and the SHA-256 of the row's source file (the case JSON or the draft). Each run compares itself
-with it and prints a diff:
+with PASS or FAIL, and the SHA-256 of the row's source file (the case JSON or the draft). The hash is taken after
+CRLF is normalised to LF, so a Windows checkout that converts line endings does not show `SOURCE EDITED` (TESTED: a
+temp copy of `cases/` with G01 converted to CRLF reports no difference). The baseline currently holds 26 rows and
+313 checks. Each run compares itself with it and prints a diff:
 
 ```
 baseline baseline.json: 5 difference(s)
@@ -167,7 +170,7 @@ baseline baseline.json: 5 difference(s)
 | `NEW CHECK` / `REMOVED CHECK` | a check name appeared or disappeared inside a row |
 | `CHANGED` | the same check went PASS -> FAIL or FAIL -> PASS |
 | `RESULT` | the row's overall result changed |
-| `SOURCE EDITED` | the case file or draft is not byte-identical to the one the baseline was taken from |
+| `SOURCE EDITED` | the case file or draft differs from the one the baseline was taken from (line endings ignored) |
 
 Any difference fails the run: exit 1 if a row also failed, exit 6 if every row passed (TESTED: the G12-only removal
 above exits 6). A partial run (`run_evals.py G03`) compares only the selected cases and the commentary rows, and
@@ -186,35 +189,41 @@ reported NOT APPLIED), and runs the whole suite against the copy (`EVALS_SKILL_D
 at least one row fails. First, a control run on an unmutated copy must pass every row. Before and after, it hashes
 `.claude/skills`, `companies`, `tests` and `evals/cases` (ignoring `__pycache__`) and fails loudly if anything changed.
 
-Last run (2026-10-13, 275.3 s): **11 killed, 2 survived, 0 not applied** of 13 (M01-M12 plus M06b). Control passed;
-protected trees identical before and after (88 files).
+Last run (2026-10-13, 314.8 s): **12 killed, 1 survived, 0 not applied** of 13 (M01-M12 plus M06b). The one
+survivor, M06, is an accepted survivor. Control passed; protected trees identical before and after (88 files); exit 0.
+
+**Exit code and accepted survivors.** `run_mutants.py` keeps an explicit `ACCEPTED_SURVIVORS` list, with a reason for
+each entry, and prints it in the summary. It exits 0 only when every mutant is killed except the accepted survivors.
+It exits 1 if any other mutant survives (or is NOT APPLIED or errors). It also exits 1 if an accepted survivor is now
+killed, so the list gets cleaned up (TESTED with a scratch monkeypatch that marked M02 as accepted: `FAIL: accepted
+survivor(s) no longer survive (M02)`, exit 1). The list holds one mutant:
+
+| Accepted survivor | Reason |
+|---|---|
+| M06 | Equivalent mutant: `metrics.compute_metrics` re-sorts the periods itself, so record order from the adapter never reaches a number. M06b (no sort anywhere) covers the real change and is killed |
 
 | Mutant | Mutation (in the copy) | PLAN expects | Result | Killed by |
 |---|---|---|---|---|
-| M01 | group subtotal rows also loaded as records | G01, G03 | KILLED | 21 rows, incl. G01, G03, G07 |
+| M01 | group subtotal rows also loaded as records | G01, G03 | KILLED | 22 rows, incl. G01, G03, G07 |
 | M02 | reconciliation tolerance 1e9 | G07 | KILLED | G03, G07 |
-| M03 | MoM % divides by the current month | G01 | KILLED | 16 rows, incl. G01, G06, G09, G12 |
+| M03 | MoM % divides by the current month | G01 | KILLED | 17 rows, incl. G01, G06, G09, G12 |
 | M04 | partial windows summed instead of n/a | G01, G04 | KILLED | G01, G04, G05, G06 |
-| M05 | window length ignored (always 12) | G05 | KILLED | 24 rows, incl. G05 |
-| M06 | adapter keeps sheet column order | G01, G06 | SURVIVED | none |
-| M06b | adapter and metrics both keep sheet order | G01, G06 | KILLED | 19 rows, incl. G01, G06 |
-| M07 | adjusted windows built from reported data | G02, G05 | KILLED | 14 rows, incl. G02, G05 |
+| M05 | window length ignored (always 12) | G05 | KILLED | 25 rows, incl. G05 |
+| M06 | adapter keeps sheet column order | G01, G06 | SURVIVED (accepted) | none |
+| M06b | adapter and metrics both keep sheet order | G01, G06 | KILLED | 20 rows, incl. G01, G06 |
+| M07 | adjusted windows built from reported data | G02, G05 | KILLED | 15 rows, incl. G02, G05 |
 | M08 | unmapped accounts mapped to "other" | G08a | KILLED | G08 |
 | M09 | approval and proposal-key checks removed | G08b | KILLED | G08 |
-| M10 | nature taken from the function field | G01 | KILLED | 15 rows, incl. G01, G06, G11 |
+| M10 | nature taken from the function field | G01 | KILLED | 16 rows, incl. G01, G06, G11 |
 | M11 | G2 BARE_NUMBER check disabled | L2 on G01 | KILLED | G11, X02, C-g2_bare_number |
-| M12 | adjusted-period coverage check disabled | L2 on G02 | SURVIVED | none |
+| M12 | adjusted-period coverage check disabled | L2 on G02 | KILLED | C-g5_missing_adjusted_pair |
 
 The full kill lists are in the `run_mutants.py` output and `results/mutants_latest.json`.
 
-**Survivors (reported, not hidden, and not fixed here):**
-- **M06** is an equivalent mutant at this site. `metrics.compute_metrics` sorts the periods itself, so the order of
-  records from the adapter never reaches a number. M06b removes both sorts and is killed. The harness reports M06
-  as SURVIVED anyway.
-- **M12** is a real gap in the suite. No draft omits the Dec 2025 reported/adjusted operating income pair:
-  `g5_missing_coverage` drops an as-of flag citation instead, and the good drafts cite the pair. A bad draft
-  `g5_missing_adjusted_pair.md` that deletes the adjusted figure would be expected to kill it (UNTESTED). It was not added in this step, so
-  the gap stays visible.
+**M12 history.** In P10b, M12 survived: no draft left out the Dec 2025 reported/adjusted operating income pair
+(`g5_missing_coverage` drops an as-of flag citation instead). P10c added `bad_drafts/g5_missing_adjusted_pair.md`,
+which is the good ABC draft with only the adjusted Dec 2025 figure removed. M12 is now killed by that row alone
+(TESTED). The mutant itself was not changed.
 
 **Not checked:** the mutation run records which rows failed, not why. For example, PLAN expects M01 to die on C6/C9.
 The mechanism behind each kill was not inspected (UNVERIFIED).

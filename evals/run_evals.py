@@ -78,6 +78,11 @@ def sha(p):
     return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
 
+def text_sha(p):
+    """Hash of a text source with CRLF normalised to LF, so a Windows checkout does not read as an edit."""
+    return hashlib.sha256(Path(p).read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
+
 def cli(*args):
     return subprocess.run([sys.executable, str(CLI), *map(str, args)], cwd=ROOT, capture_output=True, text=True)
 
@@ -447,7 +452,7 @@ def snapshot(rows):
             while name in checks:                                  # keep a repeated check name distinct
                 name, k = f"{i['check']} #{k}", k + 1
             checks[name] = "PASS" if i["ok"] else "FAIL"
-        out[r["id"]] = {"source_sha256": sha(r["source"]) if r.get("source") else None,
+        out[r["id"]] = {"source_sha256": text_sha(r["source"]) if r.get("source") else None,
                         "result": "PASS" if r["checks"].ok else "FAIL", "checks": checks}
     return out
 
