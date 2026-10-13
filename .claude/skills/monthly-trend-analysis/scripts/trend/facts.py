@@ -51,14 +51,14 @@ def parse_fact_id(fid):
 
 
 def unit_of(parsed):
-    """usd | pct | pp. A difference of two percentages is in percentage points."""
+    """amount | pct | pp. A difference of two percentages is in percentage points."""
     view, metric = parsed["view"], parsed["metric"]
     if view.endswith("_pp"):
         unit = "pp"
     elif metric in ("gm_pct", "opinc_margin_pct", "rev.mix") or "pct" in view:
         unit = "pct"
     else:
-        unit = "usd"
+        unit = "amount"
     if parsed["basis"] == "delta" and unit == "pct":
         unit = "pp"
     return unit
@@ -75,7 +75,7 @@ def display(value, unit):
     """The string a reader sees: 195,898.16 | 70.15% | 3.11 pp | n/a | insufficient data (missing: ...)."""
     if isinstance(value, NA):
         return str(value)
-    if unit == "usd":
+    if unit == "amount":
         return f"{_q(value, -2):,}"
     if unit == "pct":
         return f"{_q(value, -2):,}%"
@@ -90,14 +90,14 @@ def to_text(value, unit):
     """Text for JSON files: cents exactly, ratios to 10 dp. None for a value that does not exist."""
     if isinstance(value, NA):
         return None
-    return str(_q(value, -2 if unit == "usd" else -10))
+    return str(_q(value, -2 if unit == "amount" else -10))
 
 
 def to_cell(value, unit):
-    """Value for a spreadsheet cell: Decimal (2 dp for usd, 4 dp for ratios) or the n/a text."""
+    """Value for a spreadsheet cell: Decimal (2 dp for amount, 4 dp for ratios) or the n/a text."""
     if isinstance(value, NA):
         return str(value)
-    return _q(value, -2 if unit == "usd" else -4)
+    return _q(value, -2 if unit == "amount" else -4)
 
 
 def observed_text(o):

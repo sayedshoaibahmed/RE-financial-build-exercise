@@ -54,12 +54,12 @@ def test_every_abc_fact_id_parses_and_roundtrips(abc_metrics):
 
 
 @pytest.mark.parametrize("fid,unit", [
-    ("rep.rev.total.2026-06", "usd"), ("rep.rev.total.mom_pct.2026-06", "pct"), ("rep.rev.total.mom_abs.2026-06", "usd"),
+    ("rep.rev.total.2026-06", "amount"), ("rep.rev.total.mom_pct.2026-06", "pct"), ("rep.rev.total.mom_abs.2026-06", "amount"),
     ("rep.gm_pct.2026-06", "pct"), ("rep.gm_pct.mom_pp.2026-06", "pp"), ("rep.opex.total.pct_rev.2026-06", "pct"),
-    ("rep.opex.total.pct_rev_mom_pp.2026-06", "pp"), ("rep.opinc.tw12.2026-06", "usd"),
+    ("rep.opex.total.pct_rev_mom_pp.2026-06", "pp"), ("rep.opinc.tw12.2026-06", "amount"),
     ("rep.opinc_margin_pct.tw12.2026-06", "pct"), ("rep.opex.total.tw12_pct_rev.2026-06", "pct"),
-    ("rep.rev.total.tw12_mom_pct.2026-06", "pct"), ("rep.rev.total.tw12_prev_abs.2026-06", "usd"),
-    ("delta.opinc.2025-12", "usd"), ("delta.gm_pct.2025-12", "pp"), ("delta.opex.total.pct_rev.2025-12", "pp"),
+    ("rep.rev.total.tw12_mom_pct.2026-06", "pct"), ("rep.rev.total.tw12_prev_abs.2026-06", "amount"),
+    ("delta.opinc.2025-12", "amount"), ("delta.gm_pct.2025-12", "pp"), ("delta.opex.total.pct_rev.2025-12", "pp"),
     ("rep.rev.mix.usage_fees.2026-06", "pct"),
 ])
 def test_units(fid, unit):
@@ -67,26 +67,26 @@ def test_units(fid, unit):
 
 
 def test_display_strings():
-    assert display(D("195898.16"), "usd") == "195,898.16"
-    assert display(D("-375217.9"), "usd") == "-375,217.90"
-    assert display(D("0"), "usd") == "0.00"
-    assert display(D("2.675"), "usd") == "2.68"                       # half-up, only here at presentation
+    assert display(D("195898.16"), "amount") == "195,898.16"
+    assert display(D("-375217.9"), "amount") == "-375,217.90"
+    assert display(D("0"), "amount") == "0.00"
+    assert display(D("2.675"), "amount") == "2.68"                       # half-up, only here at presentation
     assert display(D("70.1515151515"), "pct") == "70.15%"
     assert display(D("-5.9792"), "pct") == "-5.98%"
     assert display(D("3.1101993"), "pp") == "3.11 pp"
     assert display(D("-6.0868"), "pp") == "-6.09 pp"
     assert display(NA("zero_base"), "pct") == "n/a"
-    assert display(NA("insufficient_history", "x", ("2024-11", "2024-12")), "usd") == "insufficient data (missing: 2024-11, 2024-12)"
+    assert display(NA("insufficient_history", "x", ("2024-11", "2024-12")), "amount") == "insufficient data (missing: 2024-11, 2024-12)"
 
 
 def test_to_text_and_to_cell():
-    assert to_text(D("195898.16"), "usd") == "195898.16"
+    assert to_text(D("195898.16"), "amount") == "195898.16"
     assert to_text(D("70.123456789012345"), "pct") == "70.1234567890"       # 10 dp in files, 60 in memory
     assert to_text(NA("zero_base"), "pct") is None
-    assert to_cell(D("195898.164"), "usd") == D("195898.16")
+    assert to_cell(D("195898.164"), "amount") == D("195898.16")
     assert to_cell(D("70.123456"), "pct") == D("70.1235")
     assert to_cell(NA("zero_base"), "pct") == "n/a"
-    assert to_cell(NA("gap_in_window", "", ("2025-03",)), "usd").startswith("insufficient data")
+    assert to_cell(NA("gap_in_window", "", ("2025-03",)), "amount").startswith("insufficient data")
 
 
 def test_month_name_and_observed_text():
@@ -230,7 +230,10 @@ def test_top_flags_are_merged_ranked_and_always_include_high_severity(digest, ab
     assert len(keys) == len(set(keys))                                     # one entry per (account, month)
     high = {(f.subject, f.period) for f in abc_flagset.flags if f.severity in ("high", "blocking")}
     assert high <= set(keys)
-    assert len(top) <= max(TOP_N, len(high))
+    latest = digest["as_of"]
+    forced = high | {(f.subject, f.period) for f in abc_flagset.flags if f.period == latest}
+    assert forced <= set(keys)
+    assert len(top) <= len(forced) + TOP_N          # selection rule P6b: forced groups, plus up to TOP_N of the largest others
     sizes = [float(digest["allowed_facts"][e["size"]].replace(",", "")) for e in top]
     assert sizes == sorted(sizes, reverse=True) and sizes[0] > 1_000_000          # largest first (the tax benefit)
     listed = {fid for e in top for d in e["details"] for fid in [d["flag_id"]]}
@@ -300,3 +303,226 @@ def test_level_shift_and_spike_on_the_same_account_and_month_become_one_entry(tm
 def test_blocked_digest_is_impossible_without_metrics():
     with pytest.raises(TypeError):
         build_digest(None, None, None, None, {})
+
+
+# ================================================================ P6b: labels, selection, units
+
+def all_values_of_key(o, key):
+    if isinstance(o, dict):
+        for k, v in o.items():
+            if k == key:
+                yield v
+            yield from all_values_of_key(v, key)
+    elif isinstance(o, list):
+        for v in o:
+            yield from all_values_of_key(v, key)
+
+
+def test_units_in_the_digest_are_amount_or_pct_never_usd(digest):
+    units = list(all_values_of_key(digest, "unit"))
+    assert len(units) > 20 and set(units) == {"amount", "pct"}
+    assert '"usd"' not in dumps(digest)
+
+
+def test_all_six_jun_2026_mom_move_flags_are_present(digest, abc_flagset):
+    mom = [f for f in abc_flagset.flags if f.type == "MOM_MOVE" and f.period == "2026-06"]
+    assert len(mom) == 6
+    shown = {d["flag_id"] for e in digest["flags"]["top"] for d in e["details"]}
+    assert {f.id for f in mom} <= shown
+    subjects = {e["subject"] for e in digest["flags"]["top"] if "MOM_MOVE" in e["types"]}
+    assert subjects == {"gm_pct", "opinc_margin_pct", "opex.fn.g_and_a", "opex.nat.commissions",
+                        "opex.nat.marketing_events", "opex.nat.other_operating"}
+
+
+def test_every_flag_at_the_as_of_month_is_shown(digest, abc_flagset):
+    at = {f.id for f in abc_flagset.flags if f.period == digest["as_of"]}
+    shown = {d["flag_id"] for e in digest["flags"]["top"] for d in e["details"]}
+    assert len(at) >= 7 and at <= shown                                    # 6 MOM_MOVE + Bad Debts' negative
+
+
+@pytest.mark.parametrize("subject,label", [
+    ("opex.nat.other_operating", "Other operating"), ("opex.nat.commissions", "Commissions"),
+    ("opex.nat.marketing_events", "Marketing & events"), ("opex.fn.g_and_a", "G&A"),
+    ("gm_pct", "Gross margin"), ("opinc_margin_pct", "Operating margin")])
+def test_metric_subjects_get_the_same_labels_as_the_tables(digest, subject, label):
+    entry = next(e for e in digest["flags"]["top"] if e["subject"] == subject)
+    assert entry["subject_label"] == label
+    tables = {r["label"] for r in digest["opex_by_function"] + digest["opex_by_nature"]} | \
+             {r["label"] for r in digest["headline"]["rows"]}
+    assert label in tables                                                   # the label really is one the tables use
+
+
+def test_every_entry_has_a_plain_word_subject_label_without_a_raw_id(digest):
+    assert digest["flags"]["top"]
+    for e in digest["flags"]["top"]:
+        lab = e["subject_label"]
+        assert isinstance(lab, str) and lab.strip(), e["subject"]
+        assert "." not in lab, lab                                           # no raw fact / metric id
+        assert not re.fullmatch(r"[\d\s.,%+-]+", lab), lab                   # text, never a number
+    accounts = [e for e in digest["flags"]["top"] if "MOM_MOVE" not in e["types"]]
+    assert accounts and all(e["subject_label"] == e["subject"] for e in accounts)    # account names are kept as they are
+
+
+def test_selection_groups_are_labelled_counted_and_exclusive(digest, abc_flagset):
+    top, latest = digest["flags"]["top"], digest["as_of"]
+    high = {(f.subject, f.period) for f in abc_flagset.flags if f.severity in ("high", "blocking")}
+    at = {(f.subject, f.period) for f in abc_flagset.flags if f.period == latest}
+    for e in top:
+        key = (e["subject"], e["period"])
+        want = "as_of" if key in at else "high_severity" if key in high else "largest"
+        assert e["group"] == want, key
+    counts = {g: sum(1 for e in top if e["group"] == g) for g in ("as_of", "high_severity", "largest")}
+    f = digest["allowed_facts"]
+    for g, n in counts.items():
+        assert f[digest["flags"]["groups"][g]] == str(n)
+    assert counts["as_of"] >= 7 and counts["high_severity"] == 2 and 0 < counts["largest"] <= TOP_N
+    assert sum(counts.values()) == len(top)
+
+
+def test_the_largest_group_is_capped_at_top_n_and_takes_the_biggest_remaining(abc, abc_metrics, abc_flagset, meta):
+    from trend.digest import _size
+    small = build_digest(abc.company, abc_metrics, abc_flagset, abc.mapped, meta, top_n=3)
+    largest = [e for e in small["flags"]["top"] if e["group"] == "largest"]
+    assert len(largest) == 3
+    rev = abc_metrics.facts["rep.rev.total.2026-06"]
+    size_of = {}
+    for fl in abc_flagset.flags:
+        k = (fl.subject, fl.period)
+        size_of[k] = max(size_of.get(k, 0), _size(fl, rev))
+    shown = {(e["subject"], e["period"]) for e in small["flags"]["top"]}
+    forced = {(e["subject"], e["period"]) for e in small["flags"]["top"] if e["group"] != "largest"}
+    others = [v for k, v in size_of.items() if k not in shown]
+    picked = [size_of[(e["subject"], e["period"])] for e in largest]
+    assert min(picked) >= max(others)
+    assert not [k for k in shown - forced if size_of[k] < max(others)]
+
+
+def test_a_tiny_flag_in_the_as_of_month_is_shown_but_an_older_tiny_one_is_not(tmp_path):
+    n = 6
+    rent = [100, 100, -0.5, 100, 100, -0.25]                                 # two tiny negatives: month 3 and the as-of month
+    c = mini.build(tmp_path, months(n), [100000] * n, [40000] * n, rent, [50] * n)
+    m = compute_metrics(c.mapped, c.recon, c.company)
+    fs = compute_flags(c.mapped, c.recon, m, c.company)
+    assert {(f.subject, f.period) for f in fs.flags if f.type == "NEGATIVE_VALUE"} == {("Rent", "2025-03"), ("Rent", "2025-06")}
+    d = build_digest(c.company, m, fs, c.mapped, {"input_sha256": "x", "config_sha256": "y"}, top_n=0)
+    keys = {(e["subject"], e["period"]): e["group"] for e in d["flags"]["top"]}
+    assert keys[("Rent", "2025-06")] == "as_of"                              # forced in, however small
+    assert ("Rent", "2025-03") not in keys                                   # top_n=0 and not forced: left out
+
+
+def test_high_severity_flag_is_forced_in_even_with_top_n_zero(tmp_path):
+    n = 6
+    c = mini.build(tmp_path, months(n), [100000] * n, [40000] * n, [100] * n, [50] * n,
+                   adjustments=[{"account": "Rent", "periods": ["2025-02"], "reason": "x"}])
+    m = compute_metrics(c.mapped, c.recon, c.company)
+    fs = compute_flags(c.mapped, c.recon, m, c.company)
+    d = build_digest(c.company, m, fs, c.mapped, {"input_sha256": "x", "config_sha256": "y"}, top_n=0)
+    got = {(e["subject"], e["period"]): e["group"] for e in d["flags"]["top"]}
+    assert got[("Rent", "2025-02")] == "high_severity"
+
+
+# ================================================================ P6c: the size budget is enforced by the builder
+
+def mini_digest(tmp_path, n, sales, rent, mkt, **kw):
+    c = mini.build(tmp_path, months(n), sales, [40000] * n, rent, mkt)
+    m = compute_metrics(c.mapped, c.recon, c.company)
+    fs = compute_flags(c.mapped, c.recon, m, c.company)
+    return c, m, fs, build_digest(c.company, m, fs, c.mapped, {"input_sha256": "x", "config_sha256": "y"}, **kw)
+
+
+def groups_of(d):
+    return {g: sum(1 for e in d["flags"]["top"] if e["group"] == g) for g in ("as_of", "high_severity", "largest")}
+
+
+def spiky(n=11):
+    """Three spikes in 2025-09 (group c material) and nothing in the as-of month."""
+    return dict(sales=[100000] * 8 + [300000] + [100000] * 2, rent=[100] * 8 + [9000] + [100] * 2,
+                mkt=[50] * 8 + [9000] + [50] * 2)
+
+
+def busy_as_of(n=11):
+    """Spikes earlier (group c) plus many flags in the as-of month."""
+    return dict(sales=[100000] * 8 + [300000, 100000, 180000], rent=[100] * 8 + [9000, 100, 30000],
+                mkt=[50] * 8 + [9000, 50, 40000])
+
+
+def test_default_cap_for_the_largest_group_is_eight():
+    assert TOP_N == 8
+    import inspect
+    assert inspect.signature(build_digest).parameters["top_n"].default == 8
+    assert inspect.signature(build_digest).parameters["budget"].default == SIZE_BUDGET_BYTES == STATED_BUDGET
+
+
+def test_abc_digest_fits_the_budget_with_the_default_cap(digest):
+    size = len(dumps(digest).encode("utf-8"))
+    assert size <= STATED_BUDGET, size
+    g = groups_of(digest)
+    assert g["largest"] == 8 and g["as_of"] >= 7 and g["high_severity"] == 2          # nothing had to be dropped
+    f = digest["allowed_facts"]
+    assert f[digest["flags"]["groups"]["largest_dropped_for_size"]] == "0"
+    assert not [n for n in digest["data_notes"] if n.startswith("WARNING")]
+
+
+def test_the_six_jun_2026_mom_move_flags_survive_the_budget(digest, abc_flagset):
+    mom = {f.id for f in abc_flagset.flags if f.type == "MOM_MOVE" and f.period == "2026-06"}
+    assert len(mom) == 6
+    assert mom <= {d["flag_id"] for e in digest["flags"]["top"] for d in e["details"]}
+
+
+def test_shrinking_the_largest_group_is_enough_no_warning(tmp_path):
+    _, _, _, full = mini_digest(tmp_path / "full", 11, **spiky(), budget=10 ** 9)
+    c_entries = [e for e in full["flags"]["top"] if e["group"] == "largest"]
+    assert len(c_entries) >= 3 and groups_of(full)["as_of"] == 0
+    sizes = {}
+    for k in range(len(c_entries) + 1):
+        sizes[k] = len(dumps(mini_digest(tmp_path / f"k{k}", 11, **spiky(), top_n=k, budget=10 ** 9)[3]).encode())
+    assert sizes[0] < sizes[1] < sizes[len(c_entries)]
+    budget = sizes[len(c_entries) - 1]                                      # fits with one fewer entry, not with all
+    _, _, _, d = mini_digest(tmp_path / "fit", 11, **spiky(), budget=budget)
+    assert groups_of(d)["largest"] == len(c_entries) - 1
+    assert len(dumps(d).encode()) <= budget
+    assert not [n for n in d["data_notes"] if n.startswith("WARNING")]
+    f = d["allowed_facts"]
+    assert f[d["flags"]["groups"]["largest_dropped_for_size"]] == "1"
+    kept = {(e["subject"], e["period"]) for e in d["flags"]["top"]}
+    smallest = min(c_entries, key=lambda e: float(full["allowed_facts"][e["size"]].replace(",", "")))
+    assert (smallest["subject"], smallest["period"]) not in kept            # the smallest entry went first
+
+
+def test_dropping_goes_one_entry_at_a_time_smallest_first(tmp_path):
+    _, _, _, full = mini_digest(tmp_path / "full", 11, **spiky(), budget=10 ** 9)
+    order = [(e["subject"], e["period"]) for e in full["flags"]["top"] if e["group"] == "largest"]    # largest first
+    for k in range(len(order), 0, -1):
+        _, _, _, d = mini_digest(tmp_path / f"c{k}", 11, **spiky(), top_n=k, budget=10 ** 9)
+        assert [(e["subject"], e["period"]) for e in d["flags"]["top"] if e["group"] == "largest"] == order[:k]
+
+
+def test_tiny_budget_keeps_every_forced_entry_empties_the_largest_group_and_warns(tmp_path):
+    _, _, _, big = mini_digest(tmp_path / "big", 11, **busy_as_of(), budget=10 ** 9)
+    forced = {(e["subject"], e["period"]) for e in big["flags"]["top"] if e["group"] != "largest"}
+    assert groups_of(big)["as_of"] >= 4 and groups_of(big)["largest"] >= 2
+    _, _, _, d = mini_digest(tmp_path / "tiny", 11, **busy_as_of(), budget=1500)
+    assert {(e["subject"], e["period"]) for e in d["flags"]["top"]} == forced          # all forced kept, nothing else
+    assert groups_of(d)["largest"] == 0 and groups_of(d)["as_of"] == groups_of(big)["as_of"]
+    assert len(dumps(d).encode()) > 1500                                    # still written, still over
+    warn = [n for n in d["data_notes"] if n.startswith("WARNING")]
+    assert len(warn) == 1 and "{{digest.budget_bytes}}" in warn[0]
+    assert d["allowed_facts"]["digest.budget_bytes"] == "1500"
+    assert not re.search(r"\d", TOKEN_RE.sub("", warn[0]))                  # every number in the warning is a fact id
+    dropped = int(d["allowed_facts"][d["flags"]["groups"]["largest_dropped_for_size"]])
+    assert dropped == groups_of(big)["largest"]
+
+
+def test_abc_with_a_tiny_budget_keeps_all_nine_forced_entries(abc, abc_metrics, abc_flagset, meta):
+    d = build_digest(abc.company, abc_metrics, abc_flagset, abc.mapped, meta, budget=1000)
+    g = groups_of(d)
+    assert g["largest"] == 0 and g["as_of"] >= 7 and g["high_severity"] == 2
+    assert any(n.startswith("WARNING") for n in d["data_notes"])
+    ids = {x["flag_id"] for e in d["flags"]["top"] for x in e["details"]}
+    assert {f.id for f in abc_flagset.flags if f.period == "2026-06"} <= ids
+
+
+def test_a_zero_or_negative_budget_is_rejected(abc, abc_metrics, abc_flagset, meta):
+    for bad in (0, -5):
+        with pytest.raises(ValueError):
+            build_digest(abc.company, abc_metrics, abc_flagset, abc.mapped, meta, budget=bad)

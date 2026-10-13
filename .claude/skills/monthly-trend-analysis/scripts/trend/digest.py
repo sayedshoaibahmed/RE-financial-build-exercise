@@ -4,10 +4,11 @@ Every number the commentary may quote has a fact id and a display string in `all
 the commentary cites it as {{<fact id>}}, and the keys of `allowed_facts` are the only ids it may use. Ids are the metric fact ids (rep./adj./delta.) plus
 a few digest-level ids: flags.* (counts) and flag.<flag id>.<field> (the numbers inside a flag).
 
-Size budget: SIZE_BUDGET_BYTES (60 KB). The ABC digest is well under it because (a) the adjusted basis is
+Size budget: SIZE_BUDGET_BYTES (60,000 bytes), enforced by build_digest. The ABC digest is well under it because (a) the adjusted basis is
 given only for rows where it differs from the reported one ("same_as_reported" otherwise), (b) only the
 latest month, the configured windows, the adjusted periods and the top flags are included, and (c) flags are
-merged per (account, month) and capped at TOP_N, except that every high-severity flag is always shown.
+merged per (account, month); flags.top holds every entry with a flag in the as-of month, every high-severity
+entry, and up to TOP_N of the largest remaining ones.
 """
 import re
 from decimal import Decimal
@@ -15,11 +16,12 @@ from decimal import Decimal
 from .categories import load_vocabulary
 from .facts import display, month_name, parse_fact_id, unit_of
 from .flags import SEVERITIES, TYPES
-from .metrics import NA, shift
+from .metrics import NA, shift, slug
+from .writers.json_out import dumps
 
 SCHEMA_VERSION = 1
 SIZE_BUDGET_BYTES = 60_000
-TOP_N = 15
+TOP_N = 8
 
 HEADLINE = [  # label, key, kind
     ("Revenue", "rev.total", "amount"), ("Cost of goods sold", "cogs.total", "amount"),
@@ -93,7 +95,7 @@ def _pair(book, spec, period):
 def _rows(book, rows, period, win=None):
     out = []
     for label, key, kind in rows:
-        out.append({"label": label, "unit": "usd" if kind == "amount" else "pct", **_pair(book, _spec(kind, key, win), period)})
+        out.append({"label": label, "unit": "amount" if kind == "amount" else "pct", **_pair(book, _spec(kind, key, win), period)})
     return out
 
 
@@ -140,7 +142,7 @@ def _detail(book, f):
     if isinstance(f.observed, dict):
         for field, v in f.observed.items():
             if isinstance(v, Decimal) or field in _COUNT_FIELDS or (isinstance(v, str) and field == "pct"):
-                unit = "count" if field in _COUNT_FIELDS else "pct" if field in _PCT_FIELDS else "pp" if field in _PP_FIELDS else "usd"
+                unit = "count" if field in _COUNT_FIELDS else "pct" if field in _PCT_FIELDS else "pp" if field in _PP_FIELDS else "amount"
                 ids[field] = book.value(f"flag.{f.id}.{field}", v, unit)
     mon, o = month_name(f.period), f.observed
     t = f.type
@@ -174,42 +176,85 @@ def _detail(book, f):
     return d
 
 
-def _flags_section(book, flagset, top_n, revenue):
+_STATIC_LABELS = {label_key: label for label, label_key, _ in HEADLINE if label_key in ("rev.total", "cogs.total", "gp", "gm_pct", "opex.total", "opinc", "opinc_margin_pct", "net_income")}
+
+
+def _subject_label(subject, types, vocab, stream_names):
+    """Plain words for a flag subject. Account names are kept as they are; metric-id subjects (MOM_MOVE) use the
+    labels of the headline and opex tables."""
+    if "MISSING_MONTH" in types:
+        return "Missing month"
+    if "MOM_MOVE" not in types:
+        return subject
+    if subject in _STATIC_LABELS:
+        return _STATIC_LABELS[subject]
+    for prefix, labels in (("opex.fn.", vocab.functions), ("opex.nat.", vocab.natures), ("rev.stream.", stream_names)):
+        if subject.startswith(prefix):
+            key = subject[len(prefix):]
+            return labels.get(key, key.replace("_", " "))
+    return subject.replace(".", " ").replace("_", " ")
+
+
+def _flags_section(book, flagset, top_n, revenue, latest, vocab, stream_names, cap):
+    """flags.top = (a) every entry with a flag in the as-of month, (b) every high-severity entry, then
+    (c) the largest of the rest: up to `top_n`, and fewer (`cap`) when the size budget needs it.
+    Entries are merged per (account or metric, month). Groups (a) and (b) are never dropped."""
     counts = {t: book.value(f"flags.count.{t}", n, "count") for t, n in flagset.counts.items()}
     sev = {s: book.value(f"flags.severity.{s}", n, "count") for s, n in flagset.by_severity.items()}
     total = book.value("flags.count.total", len(flagset.flags), "count")
     suppressed = book.value("flags.suppressed_negatives", len(flagset.suppressed_negatives), "count")
 
-    groups = {}
+    merged = {}
     for f in flagset.flags:
-        groups.setdefault((f.subject, f.period), []).append(f)
+        merged.setdefault((f.subject, f.period), []).append(f)
     ranked = []
-    for (subject, period), fl in groups.items():
+    for (subject, period), fl in merged.items():
         size = max(_size(f, revenue) for f in fl)
         ranked.append((-size, subject, period, size, fl))
     ranked.sort(key=lambda x: (x[0], x[1], x[2]))
-    must = [r for r in ranked if any(f.severity in ("high", "blocking") for f in r[4])]
-    rest = [r for r in ranked if r not in must]
-    chosen = sorted(must + rest[:max(0, top_n - len(must))], key=lambda x: (x[0], x[1], x[2]))
-    top = []
-    for _, subject, period, size, fl in chosen:
+    order = lambda x: (x[0], x[1], x[2])
+
+    def group_of(r):
+        if any(f.period == latest for f in r[4]):
+            return "as_of"
+        if any(f.severity in ("high", "blocking") for f in r[4]):
+            return "high_severity"
+        return "largest"
+
+    forced = [r for r in ranked if group_of(r) != "largest"]
+    candidates = [r for r in ranked if group_of(r) == "largest"]
+    wanted = min(max(0, top_n), len(candidates))
+    largest = candidates[:max(0, min(cap, wanted))]                    # biggest first, so the smallest go first
+    chosen = sorted(forced + largest, key=order)                       # forced entries are exempt from every cap
+    top, tally = [], {"as_of": 0, "high_severity": 0, "largest": 0}
+    for r in chosen:
+        _, subject, period, size, fl = r
         fl = sorted(fl, key=lambda f: (f.type, f.basis))
         best = max(fl, key=lambda f: (_size(f, revenue), f.id))
         bases = {f.basis for f in fl}
-        top.append({"subject": subject, "period": period, "basis": bases.pop() if len(bases) == 1 else "mixed",
-                    "severity": min((f.severity for f in fl), key=SEVERITIES.index),
-                    "types": [f.type for f in fl], "size": book.value(f"flag.{best.id}.size", size, "usd"),
+        g = group_of(r)
+        tally[g] += 1
+        top.append({"subject": subject, "subject_label": _subject_label(subject, {f.type for f in fl}, vocab, stream_names),
+                    "period": period, "basis": bases.pop() if len(bases) == 1 else "mixed",
+                    "severity": min((f.severity for f in fl), key=SEVERITIES.index), "group": g,
+                    "types": [f.type for f in fl], "size": book.value(f"flag.{best.id}.size", size, "amount"),
                     "details": [_detail(book, f) for f in fl]})
+    group_ids = {g: book.value(f"flags.group.{g}", n, "count") for g, n in tally.items()}
+    group_ids["largest_dropped_for_size"] = book.value("flags.group.largest_dropped_for_size", wanted - len(largest), "count")
     shown = book.value("flags.shown", len(top), "count")
     omitted = book.value("flags.omitted", len(ranked) - len(top), "count")
     return {"counts": counts, "by_severity": sev, "total": total, "suppressed_negatives": suppressed,
-            "shown": shown, "omitted_entries": omitted, "top": top}
+            "shown": shown, "omitted_entries": omitted, "groups": group_ids, "top": top}
 
 
 # ---------------------------------------------------------------- notes
 
-def _data_notes(book, mapped, latest):
+def _data_notes(book, mapped, latest, warn_budget=None):
     notes = []
+    if warn_budget is not None:
+        notes.append("WARNING: this digest is larger than its size budget of "
+                     f"{_tok(book.value('digest.budget_bytes', warn_budget, 'count'))} bytes even after dropping every "
+                     "optional flag. Every as-of-month and high-severity entry was kept.")
     fid = f"rep.opex.fn.non_operating_tax.{latest}"
     if fid in book.m.facts:
         notes.append("The workbook presents interest and tax lines inside operating expenses, so operating income "
@@ -230,9 +275,7 @@ def _data_notes(book, mapped, latest):
 
 # ---------------------------------------------------------------- entry point
 
-def build_digest(company, metrics, flagset, mapped, meta, top_n=TOP_N):
-    if company is None or metrics is None or flagset is None or mapped is None:
-        raise TypeError("a digest needs a company, metrics, flags and mapped records (none exist for a BLOCKED run)")
+def _assemble(company, metrics, flagset, mapped, meta, top_n, cap, warn_budget):
     book = _Book(metrics)
     latest = metrics.periods[-1]
     prior = shift(latest, -1)
@@ -255,12 +298,12 @@ def build_digest(company, metrics, flagset, mapped, meta, top_n=TOP_N):
     adj_periods = []
     for p in sorted({a.period for a in metrics.adjustments if a.present and a.reported_amount != 0}):
         entry = {"period": p,
-                 "month": [{"label": lab, "unit": "usd" if kind == "amount" else "pct",
+                 "month": [{"label": lab, "unit": "amount" if kind == "amount" else "pct",
                             **_flat_pair(book, key, None, p)} for lab, key, kind in ADJ_MONTH_ROWS]}
         win = f"tw{n0}"
         if _fid("rep", "opinc", win, p) in metrics.facts:
             entry["window"] = {"length": n0, "end": p,
-                               "rows": [{"label": lab, "unit": "usd" if kind == "amount" else "pct",
+                               "rows": [{"label": lab, "unit": "amount" if kind == "amount" else "pct",
                                          **_flat_pair(book, key, win, p)} for lab, key, kind in ADJ_MONTH_ROWS]}
         adjs = []
         for a in metrics.adjustments:
@@ -274,6 +317,7 @@ def build_digest(company, metrics, flagset, mapped, meta, top_n=TOP_N):
         adj_periods.append(entry)
 
     revenue = metrics.facts.get(f"rep.rev.total.{latest}")
+    stream_names = {slug(m.group): m.group for m in mapped if m.record.section == "income"}
     digest = {
         "schema_version": SCHEMA_VERSION, "company_id": company.company_id, "status": "OK", "as_of": latest,
         "prior_period": prior if prior in metrics.periods else None,
@@ -286,8 +330,31 @@ def build_digest(company, metrics, flagset, mapped, meta, top_n=TOP_N):
         "opex_by_function": _category_rows(book, "fn", vocab.functions, order(list(vocab.functions), present["fn"]), latest, f"tw{n0}"),
         "opex_by_nature": _category_rows(book, "nat", vocab.natures, order(list(vocab.natures), present["nat"]), latest, f"tw{n0}"),
         "adjusted_periods": adj_periods,
-        "flags": _flags_section(book, flagset, top_n, revenue),
+        "flags": _flags_section(book, flagset, top_n, revenue, latest, vocab, stream_names, cap),
     }
-    digest["data_notes"] = _data_notes(book, mapped, latest)
+    digest["data_notes"] = _data_notes(book, mapped, latest, warn_budget)
     digest["allowed_facts"] = dict(sorted(book.facts.items()))     # id -> display string; the keys are the allowed ids
     return digest
+
+
+def build_digest(company, metrics, flagset, mapped, meta, top_n=TOP_N, budget=SIZE_BUDGET_BYTES):
+    """The digest, within `budget` bytes when that is possible.
+
+    Group (c) ("largest") is capped at `top_n`. If the digest is still over `budget`, group (c) loses one entry
+    at a time, smallest first. Group (a) (as-of month) and group (b) (high severity) are never dropped: if the
+    digest is over budget with group (c) empty, it is still built with every forced entry and carries a WARNING
+    line in data_notes. flags.groups.largest_dropped_for_size says how many group (c) entries went for size."""
+    if company is None or metrics is None or flagset is None or mapped is None:
+        raise TypeError("a digest needs a company, metrics, flags and mapped records (none exist for a BLOCKED run)")
+    if budget <= 0:
+        raise ValueError("the size budget must be positive")
+    top_n = max(0, top_n)
+    fits = lambda d: len(dumps(d).encode("utf-8")) <= budget
+    d = _assemble(company, metrics, flagset, mapped, meta, top_n, top_n, None)
+    if fits(d):
+        return d
+    for cap in range(sum(1 for e in d["flags"]["top"] if e["group"] == "largest") - 1, -1, -1):
+        d = _assemble(company, metrics, flagset, mapped, meta, top_n, cap, None)
+        if fits(d):
+            return d
+    return _assemble(company, metrics, flagset, mapped, meta, top_n, 0, budget)

@@ -20,7 +20,7 @@ from ..metrics import NA, shift, slug
 
 SHEETS = ["Cover", "Summary", "Revenue", "Margins", "Opex_by_function", "Opex_by_nature", "Opex_detail", "Windows",
           "Adjustments", "Flags", "Reconciliation", "Data", "Data_accounts", "Commentary", "Assumptions"]
-FMT = {"usd": "#,##0.00", "pct": '0.00"%"', "pp": '0.00" pp"'}
+FMT = {"amount": "#,##0.00", "pct": '0.00"%"', "pp": '0.00" pp"'}
 BOLD = Font(bold=True)
 BANNER = Font(bold=True, color="C00000")
 FIXED_TIME = datetime(2000, 1, 1)
@@ -123,29 +123,29 @@ def _summary(wb, metrics, adj_flag_ids):
         k2 = key
         mom = [_val(ws, facts, b, k2, view, latest) for b in ("rep", "adj")]
         pct = [_val(ws, facts, b, k2, "mom_pct", latest) if kind == "amount" else None for b in ("rep", "adj")]
-        ws.append([label, "usd" if kind == "amount" else "pct", r, a, d, pr, pa, mom[0], pct[0], mom[1], pct[1]])
+        ws.append([label, "amount" if kind == "amount" else "pct", r, a, d, pr, pa, mom[0], pct[0], mom[1], pct[1]])
     ws.append([])
     for n in metrics.window_lengths:
         win = f"tw{n}"
         ws.append([_c(ws, f"{n}-month window ending {metrics.window_end}", font=BOLD)])
         ws.append(_h(ws, "Metric", "Unit", "Reported", "Adjusted", "Delta (adj - rep)"))
         for label, key, kind in HEADLINE:
-            ws.append([label, "usd" if kind == "amount" else "pct", *triple(kind, key, win, metrics.window_end)])
+            ws.append([label, "amount" if kind == "amount" else "pct", *triple(kind, key, win, metrics.window_end)])
         ws.append([])
     n0 = metrics.window_lengths[0]
     for p in sorted({a.period for a in metrics.adjustments if a.present and a.reported_amount != 0}):
         ws.append([_c(ws, f"Adjusted period {p} shown both ways", font=BOLD)])
         ws.append(_h(ws, "Metric", "Unit", "Reported", "Adjusted", "Delta (adj - rep)"))
         for label, key, kind in ADJ_MONTH_ROWS:
-            ws.append([f"{label} (month)", "usd" if kind == "amount" else "pct", *triple(kind, key, None, p)])
+            ws.append([f"{label} (month)", "amount" if kind == "amount" else "pct", *triple(kind, key, None, p)])
         if _fid("rep", "opinc", f"tw{n0}", p) in facts:
             for label, key, kind in ADJ_MONTH_ROWS:
-                ws.append([f"{label} ({n0}-month window ending {p})", "usd" if kind == "amount" else "pct",
+                ws.append([f"{label} ({n0}-month window ending {p})", "amount" if kind == "amount" else "pct",
                            *triple(kind, key, f"tw{n0}", p)])
         for a in metrics.adjustments:
             if a.period == p and a.present and a.reported_amount != 0:
-                ws.append([f"Excluded: {a.account}", "usd", _c(ws, a.reported_amount, FMT["usd"]),
-                           _c(ws, a.adjusted_amount, FMT["usd"]), _c(ws, a.delta, FMT["usd"])])
+                ws.append([f"Excluded: {a.account}", "amount", _c(ws, a.reported_amount, FMT["amount"]),
+                           _c(ws, a.adjusted_amount, FMT["amount"]), _c(ws, a.delta, FMT["amount"])])
         ws.append([])
 
 
@@ -164,7 +164,7 @@ def _flags(wb, flagset):
     ws.append([_c(ws, "Suppressed negatives: below negative_min_abs_amount, so not flagged; they stay in the data and every total", font=BOLD)])
     ws.append(_h(ws, "Account", "Period", "Amount"))
     for s in flagset.suppressed_negatives:
-        ws.append([s["account"], s["period"], _c(ws, s["amount"], FMT["usd"])])
+        ws.append([s["account"], s["period"], _c(ws, s["amount"], FMT["amount"])])
 
 
 def _reconciliation(wb, recon):
@@ -174,7 +174,7 @@ def _reconciliation(wb, recon):
     ws.append(_h(ws, "Control", "Name", "Period", "Expected (workbook)", "Actual (recomputed)", "Difference", "Status",
                  "Source cell", "Note"))
     for r in sorted(recon.results, key=lambda r: (r.period, r.control_id)):
-        ws.append([r.control_id, r.control_name, r.period, *(_c(ws, None if x is None else to_cell(x, "usd"), FMT["usd"])
+        ws.append([r.control_id, r.control_name, r.period, *(_c(ws, None if x is None else to_cell(x, "amount"), FMT["amount"])
                                                             for x in (r.expected, r.actual, r.difference)),
                    "OK" if r.ok else "FAIL", r.source_ref, r.reason])
     ws.append([])
@@ -190,8 +190,8 @@ def _adjustments(wb, metrics):
     ws.append([])
     ws.append(_h(ws, "Account", "Period", "Reported amount", "Adjusted amount", "Delta", "Data present", "Reason"))
     for a in metrics.adjustments:
-        ws.append([a.account, a.period, _c(ws, a.reported_amount, FMT["usd"]), _c(ws, a.adjusted_amount, FMT["usd"]),
-                   _c(ws, a.delta, FMT["usd"]), "yes" if a.present else "no", a.reason])
+        ws.append([a.account, a.period, _c(ws, a.reported_amount, FMT["amount"]), _c(ws, a.adjusted_amount, FMT["amount"]),
+                   _c(ws, a.delta, FMT["amount"]), "yes" if a.present else "no", a.reason])
 
 
 def _data(wb, metrics):
@@ -216,7 +216,7 @@ def _data_accounts(wb, company, metrics, mapped):
         for m in sorted(recs, key=lambda m: m.record.period):         # stable: sheet order within a month
             r = m.record
             ws.append([basis, r.period, r.section, r.account, " > ".join(r.account_path), m.function, m.nature,
-                       to_cell(r.amount, "usd"), to_cell(metrics.facts[_fid(tok, "rev.total", None, r.period)], "usd"),
+                       to_cell(r.amount, "amount"), to_cell(metrics.facts[_fid(tok, "rev.total", None, r.period)], "amount"),
                        m.group])
 
 

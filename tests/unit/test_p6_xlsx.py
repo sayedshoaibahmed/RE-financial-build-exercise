@@ -295,7 +295,7 @@ def test_data_values_equal_the_metrics_and_n_a_rows_explain_themselves(data_rows
             assert r[6] in (None, "") and r[8], r
             n_na += 1
         else:
-            near(r[6], float(v), 0.00006 if r[7] != "usd" else 0.005)
+            near(r[6], float(v), 0.00006 if r[7] != "amount" else 0.005)
     assert n_na > 10
     anchors = {r[0]: r for r in data_rows[1:] if r[0] in ("rep.rev.total.2026-06", "rep.opinc.2025-12",
                                                           "adj.opinc.2025-12", "rep.rev.total.tw12.2026-06")}
@@ -336,3 +336,13 @@ def test_two_builds_have_identical_cell_values(tmp_path, abc, abc_metrics, abc_f
         checked += 1
     wb.close()
     assert checked == 15
+
+
+def test_unit_column_says_amount_not_usd_on_every_sheet(rows, data_rows):
+    units = {r[7] for r in data_rows[1:]}
+    assert units == {"amount", "pct", "pp"}
+    summary = [r for r in rows["Summary"] if r[0] and r[1] in ("amount", "pct", "usd")]
+    assert summary and {r[1] for r in summary} == {"amount", "pct"}
+    for sheet, rs in rows.items():
+        assert not [c for r in rs for c in r if c == "usd"], sheet
+    assert not [r for r in data_rows if "usd" in r]
