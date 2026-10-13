@@ -3,3 +3,4 @@ Commit: 0f46bc6
 Date imported: 2026-10-13 (git archive of committed HEAD)
 Credentials are not included; reviewers supply their own Intuit keys (see connector\.env.example).
 README.md in this copy was edited on 2026-10-13 (Alternatives considered section; balance-sheet check status). The code and tests are unchanged from the source commit.
+auth/flow.py: one docstring word reworded on 2026-10-13; no behaviour change.

@@ -154,7 +154,7 @@ def _parse_and_save_token_response(body: dict, realm_id: str) -> TokenData:
     Fields used:
     - expires_in: access token lifetime in seconds (typically 3600).
     - x_refresh_token_expires_in: refresh token remaining lifetime in seconds.
-    - x_refresh_token_hard_expires_in: hard expiry (if header sent). UNVERIFIED
+    - x_refresh_token_hard_expires_in: hard expiry (if header sent). not tested
       whether this field appears in all account types; we fall back to
       x_refresh_token_expires_in if absent.
     """

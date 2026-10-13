@@ -1,6 +1,6 @@
 {
  "date": "2026-10-13",
- "judge": "Claude (claude-opus-5-5, as self-reported by each judge subagent; UNVERIFIED), 3 independent subagent passes, each given only the rubric, the 3 digests under neutral names, the blind drafts and the draft-to-digest assignment",
+ "judge": "Claude (claude-opus-5-5, as self-reported by each judge subagent), 3 independent subagent passes, each given only the rubric, the 3 digests under neutral names, the blind drafts and the draft-to-digest assignment",
  "judge_model": [
   "claude-opus-5-5"
  ],

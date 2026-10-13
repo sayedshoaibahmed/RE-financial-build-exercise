@@ -40,7 +40,7 @@ DEFAULT_SECTIONS = {
     "Income": SectionAlias("income"),
     "COGS": SectionAlias("cogs"),
     "Expenses": SectionAlias("opex"),
-    "OtherIncome": SectionAlias("other_income"),     # UNVERIFIED: not in the captured file
+    "OtherIncome": SectionAlias("other_income"),     # not in the captured file; this section kind is not tested
     "OtherExpenses": SectionAlias("other_expense"),
 }
 # top-level groups that carry only a Summary; value = control name (None = the report's own label)
