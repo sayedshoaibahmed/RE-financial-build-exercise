@@ -129,7 +129,7 @@ refuses to start unless the environment is `sandbox`. It exposes four read-only 
 
 ## Known limits
 
-- Permissions are a second layer, not a sandbox. The deny rules in `.claude\settings.json` for Read, Edit and Write were TESTED live in Claude Code sessions. Deny rules do not bind subprocesses: a python or shell call can still change files. So this is a guard against careless edits, not a sandbox. (UNTESTED as a security boundary.)
+- Permissions are a second layer, not a sandbox. The Read and Edit deny rules in `.claude\settings.json` were TESTED live in Claude Code sessions; the Edit rule also blocked the Write tool. Deny rules do not bind subprocesses: a python or shell call can still change files. So this is a guard against careless edits, not a sandbox. (UNTESTED as a security boundary.)
 - The manifest guards careless edits only. It does not stop a deliberate change. (TESTED for careless edits; UNTESTED against deliberate ones.)
 - Chat answers are guided by an instruction in `SKILL.md`. Code does not check them. Only the written commentary is checked by the grounding rules.
 - A QuickBooks P&L report adapter for the trend skill exists (`adapters\qbo_report.py`) and is TESTED at record level only. It is not wired into `trend_cli.py`, `config.py` or `pipeline.py`, so the skill still runs on Excel only, eval case G10 (QBO parity) is not built, and the adapter is not mutation-tested (UNTESTED). The connector and the skill are not wired together.

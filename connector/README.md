@@ -16,7 +16,7 @@ that connects a **QuickBooks Online Sandbox** to Claude Desktop.
 | `auth status` command | **TESTED (offline)** | `TestAuthStatusNeverPrintsTokens::test_status_output_does_not_contain_access_token`, `::test_status_prints_realm_id` |
 | `get_company_info` tool | **TESTED offline (mocked, URL shape and params checked); live check done by the user separately** | `TestURLShape::test_companyinfo_url_includes_realm_suffix`; `TestTransportLevelGetOnly::test_tool_issues_only_get[get_company_info_tool-...]`; `TestFaultErrorMessage::test_error_contains_fault_message` |
 | `get_profit_and_loss` tool | **TESTED offline (mocked, URL shape and params checked); live check done by the user separately** | `TestURLShape::test_profit_and_loss_url_shape`; `TestURLShapeParams::test_profit_and_loss_sends_start_and_end_date_params`; `TestDateValidation::test_pnl_invalid_start_date_no_http`, `::test_pnl_injection_attempt_no_http`, `::test_pnl_start_after_end_no_http`; `TestTransportLevelGetOnly::test_tool_issues_only_get[get_profit_and_loss_tool-...]` |
-| `get_balance_sheet` tool | **TESTED offline (mocked URL shape, start_date+end_date params, and period guard); as-of-date VALUES are UNVERIFIED until compared with the QuickBooks UI** | `TestURLShapeParams::test_balance_sheet_sends_start_and_end_date_not_date_macro`; `TestReportPeriodGuard::test_mismatched_end_period_raises_and_returns_no_data`, `::test_matching_reply_returns_data`, `::test_missing_header_raises`, `::test_no_dates_requested_no_guard_and_no_date_params`; `TestURLShape::test_balance_sheet_url_shape`; `TestDateValidation::test_balance_sheet_invalid_date_no_http`; `TestTransportLevelGetOnly::test_tool_issues_only_get[get_balance_sheet_tool-...]` |
+| `get_balance_sheet` tool | **TESTED offline (mocked URL shape, start_date+end_date params, and period guard); as-of-date values TESTED (one date): on 2026-10-13, accrual basis, sandbox company, Total Assets 23,436.29, Total Liabilities 31,131.33 and Total Equity -7,695.04 matched the QuickBooks Balance Sheet screen, checked by hand through Claude Desktop, not repeated by reviewers** | `TestURLShapeParams::test_balance_sheet_sends_start_and_end_date_not_date_macro`; `TestReportPeriodGuard::test_mismatched_end_period_raises_and_returns_no_data`, `::test_matching_reply_returns_data`, `::test_missing_header_raises`, `::test_no_dates_requested_no_guard_and_no_date_params`; `TestURLShape::test_balance_sheet_url_shape`; `TestDateValidation::test_balance_sheet_invalid_date_no_http`; `TestTransportLevelGetOnly::test_tool_issues_only_get[get_balance_sheet_tool-...]` |
 | `list_accounts` tool | **TESTED offline (mocked, URL shape and params checked); live check done by the user separately** | `TestURLShape::test_list_accounts_url_shape_and_select_param`; `TestTransportLevelGetOnly::test_tool_issues_only_get[list_accounts_tool-...]` |
 | `invalid_grant` raises once, no retry | **TESTED (offline)** | `TestInvalidGrantNoSilentRetry::test_invalid_grant_raises_immediately` |
 | GET-only enforcement | **TESTED (transport-level + mutant)** | `TestTransportLevelGetOnly::test_tool_issues_only_get[*]`; mutant caught by `TestPathAllowlist::test_qbo_get_disallowed_path_raises_before_http` |
@@ -39,7 +39,7 @@ that connects a **QuickBooks Online Sandbox** to Claude Desktop.
 | Secrets never in logs | **TESTED (offline)** | `TestSecretsNotInLogs::test_config_repr_does_not_leak_secrets`, `::test_secret_str_repr_redacted`, `::test_token_store_redact_function` |
 | Token path under `%LOCALAPPDATA%` | **TESTED (offline)** | `TestTokenPath::test_token_dir_under_localappdata`, `::test_token_file_under_localappdata` |
 | `minorversion=75` in every request | **TESTED (offline)** | `TestMinorVersion::test_minor_version_sent_in_every_get` |
-| Live QBO sandbox connection (all 4 tools via Claude Desktop) | **LIVE-TESTED by the user on Oct 12 2026 against Sandbox Company US b44a via Claude Desktop** | get_company_info, get_profit_and_loss, get_balance_sheet, list_accounts; 'create customer' refused (no write tool exists). Profit and loss Net Income matched the QuickBooks UI (user-reported); balance sheet values not compared with the UI |
+| Live QBO sandbox connection (all 4 tools via Claude Desktop) | **LIVE-TESTED by the user on Oct 12 2026 against Sandbox Company US b44a via Claude Desktop** | get_company_info, get_profit_and_loss, get_balance_sheet, list_accounts; 'create customer' refused (no write tool exists). Profit and loss Net Income matched the QuickBooks UI (user-reported); balance sheet values TESTED (one date): on 2026-10-13, accrual basis, sandbox company, Total Assets 23,436.29, Total Liabilities 31,131.33 and Total Equity -7,695.04 matched the QuickBooks Balance Sheet screen, checked by hand through Claude Desktop, not repeated by reviewers |
 | Token rotation under Claude Desktop | **LIVE-OBSERVED** | tokens.json rewritten after refresh, no private copy in the package folder |
 | `x_refresh_token_hard_expires_in` field presence | **UNVERIFIED** | Third-party source only; not seen in a live Intuit response |
 | `minorversion=75` validity | **UNVERIFIED** | Intuit’s blog confirms 75 is the minimum and default; whether a newer version exists is UNVERIFIED |
@@ -48,7 +48,7 @@ that connects a **QuickBooks Online Sandbox** to Claude Desktop.
 
 - **(a) `companyinfo` needs `/companyinfo/<realmId>`** — path was `.../companyinfo`; live returned HTTP 400 "Unsupported Operation"; correct path is `.../companyinfo/<realmId>`. Fixed in `get_company_info` / `qbo_get`. Backed by `TestURLShape::test_companyinfo_url_includes_realm_suffix`.
 - **(b) BalanceSheet `date_macro` takes named periods only** — live returned HTTP 400 "Invalid Enumeration" when `date_macro=2026-10-12` was sent; `date_macro` accepts only named macro strings (e.g. `This Year`), not YYYY-MM-DD values.
-- **(c) BalanceSheet ignores end_date alone and silently returns today's year-to-date** — mitigation: `start_date` + `end_date` together and a response-period guard (`_check_report_period`). Backed by `TestURLShapeParams::test_balance_sheet_sends_start_and_end_date_not_date_macro` and `TestReportPeriodGuard`. Balance sheet as-of-date values are UNVERIFIED until compared with the QuickBooks UI.
+- **(c) BalanceSheet ignores end_date alone and silently returns today's year-to-date** — mitigation: `start_date` + `end_date` together and a response-period guard (`_check_report_period`). Backed by `TestURLShapeParams::test_balance_sheet_sends_start_and_end_date_not_date_macro` and `TestReportPeriodGuard`. Balance sheet as-of-date values TESTED (one date): on 2026-10-13, accrual basis, sandbox company, Total Assets 23,436.29, Total Liabilities 31,131.33 and Total Equity -7,695.04 matched the QuickBooks Balance Sheet screen, checked by hand through Claude Desktop, not repeated by reviewers.
 
 ---
 
@@ -124,6 +124,19 @@ on first directory creation. This restricts access to the current Windows user a
     `reports/BalanceSheet`, `query`).
   - `list_accounts` uses a hardcoded `SELECT *` query.
   - No tool exposes any write path.
+
+### Alternatives considered
+
+The brief lists three ways to connect: a native connector, an open-source MCP server you deploy, or a custom MCP built on the QuickBooks API. **Chosen: custom.**
+
+Criteria:
+- Read-only enforced in code. The Intuit accounting scope allows writes, so the scope cannot give read-only.
+- Sandbox-only enforced. The server refuses to start unless the environment is `sandbox`.
+- Small enough to audit: four read-only tools, covered by offline tests.
+
+Not chosen: a native or hosted connector, because its code cannot be inspected or tested here, so read-only and sandbox-only could not be proved. An open-source server, because it would need a review of someone else's code that handles OAuth tokens, and many such servers include write tools (general statement, UNVERIFIED for any specific project).
+
+I compared the options on how well they fit these criteria and chose on that basis; I did not install or test the other options.
 
 ### Connection choice
 
