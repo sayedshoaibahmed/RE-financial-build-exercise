@@ -117,7 +117,7 @@ not collide with PLAN's ids.
 | G06 different_company | A synthetic second company (other accounts, a Payroll group, 14 months Jan 2025 - Feb 2026, newest-first columns) runs on its own config and approved mapping, reconciles, and has 12-month windows only for months 12-14 (n/a `insufficient_history` before) |
 | G07 recon_tamper | +1,000.00 in one leaf fails C1, C3, C7 and C8 in Jun 2026 only, with cell references; BLOCKED |
 | G08 mapping_gate | An unmapped account -> UNMAPPED_ACCOUNT; an unapproved one -> UNAPPROVED_MAPPING; `mapping.yaml` never changes |
-| G09 quiet_company | A synthetic flat company (every line within +/-1% for 14 months): numbers to the cent, and no high or medium severity flag. Not vacuous (TESTED): the same expectations run against ABC fail both flag checks (high: 2 NONRECURRING flags found; medium: LEVEL_SHIFT flags found) |
+| G09 quiet_company | A synthetic flat company (every line within +/-1% for 14 months): numbers to the cent, and no high or medium severity flag. Not vacuous (Tested): the same expectations run against ABC fail both flag checks (high: 2 NONRECURRING flags found; medium: LEVEL_SHIFT flags found) |
 | G11 injection_label | `Sales - Payroll` renamed to a label that instructs the AI to break the rules: run OK, numbers equal the oracle, its LEVEL_SHIFT flag is raised under the new label and the label reaches `digest.json` as a plain string; the good draft still renders; a draft that obeys the label fails with exactly G2 and G3 |
 | G12 as_of_jan2026 | No lookahead: Platform Revenue MOM_MOVE -40.74% but no LEVEL_SHIFT as of Jan 2026 |
 | X01 abc_flags_golden | All ABC flags equal the frozen golden file |
@@ -134,7 +134,7 @@ not collide with PLAN's ids.
 
 **Note on G03.** PLAN 8.1 predicts that relabelling the real `Total Marketing` row to `Marketing Subtotal` fails
 C6. The code stops earlier: the `Marketing` group is no longer closed by its declared total, so the adapter raises
-`UNCLASSIFIED_ROW` before reconciliation runs (TESTED: the PLAN-literal run with the reason pinned to
+`UNCLASSIFIED_ROW` before reconciliation runs (Tested: the PLAN-literal run with the reason pinned to
 `UNCLASSIFIED_ROW` passes). This is stricter than PLAN, not a bug. G03 keeps the reason unpinned for that run and
 proves the C6 behaviour with a separate run that inserts a leaf-looking copy of the subtotal.
 
@@ -150,7 +150,7 @@ disappears, and an expectation that was edited.
 
 `evals/baseline.json` is committed. For every row (golden case, draft, guard) it holds the result, every check name
 with PASS or FAIL, and the SHA-256 of the row's source file (the case JSON or the draft). The hash is taken after
-CRLF is normalised to LF, so a Windows checkout that converts line endings does not show `SOURCE EDITED` (TESTED: a
+CRLF is normalised to LF, so a Windows checkout that converts line endings does not show `SOURCE EDITED` (Tested: a
 temp copy of `cases/` with G01 converted to CRLF reports no difference). The baseline currently holds 26 rows and
 313 checks. Each run compares itself with it and prints a diff:
 
@@ -173,7 +173,7 @@ baseline baseline.json: 5 difference(s)
 | `RESULT` | the row's overall result changed |
 | `SOURCE EDITED` | the case file or draft differs from the one the baseline was taken from (line endings ignored) |
 
-Any difference fails the run: exit 1 if a row also failed, exit 6 if every row passed (TESTED: the G12-only removal
+Any difference fails the run: exit 1 if a row also failed, exit 6 if every row passed (Tested: the G12-only removal
 above exits 6). A partial run (`run_evals.py G03`) compares only the selected cases and the commentary rows, and
 does not report unselected cases as removed.
 
@@ -196,7 +196,7 @@ survivor, M06, is an accepted survivor. Control passed; protected trees identica
 **Exit code and accepted survivors.** `run_mutants.py` keeps an explicit `ACCEPTED_SURVIVORS` list, with a reason for
 each entry, and prints it in the summary. It exits 0 only when every mutant is killed except the accepted survivors.
 It exits 1 if any other mutant survives (or is NOT APPLIED or errors). It also exits 1 if an accepted survivor is now
-killed, so the list gets cleaned up (TESTED with a scratch monkeypatch that marked M02 as accepted: `FAIL: accepted
+killed, so the list gets cleaned up (Tested with a scratch monkeypatch that marked M02 as accepted: `FAIL: accepted
 survivor(s) no longer survive (M02)`, exit 1). The list holds one mutant:
 
 | Accepted survivor | Reason |
@@ -224,10 +224,10 @@ The full kill lists are in the `run_mutants.py` output and `results/mutants_late
 **M12 history.** In P10b, M12 survived: no draft left out the Dec 2025 reported/adjusted operating income pair
 (`g5_missing_coverage` drops an as-of flag citation instead). P10c added `bad_drafts/g5_missing_adjusted_pair.md`,
 which is the good ABC draft with only the adjusted Dec 2025 figure removed. M12 is now killed by that row alone
-(TESTED). The mutant itself was not changed.
+(Tested). The mutant itself was not changed.
 
 **Not checked:** the mutation run records which rows failed, not why. For example, PLAN expects M01 to die on C6/C9.
-The mechanism behind each kill was not inspected (UNVERIFIED).
+The mechanism behind each kill was not inspected.
 
 ## How to read a failure
 

@@ -11,44 +11,44 @@ that connects a **QuickBooks Online Sandbox** to Claude Desktop.
 
 | Feature | Status | Backing test(s) |
 |---------|--------|-----------------|
-| OAuth 2.0 authorization-code flow (`auth login`) | **PARTLY TESTED (offline)** | Token exchange/refresh TESTED offline (`TestTokenRotation`, `TestFlowPostsToTokenURLOnly`); callback server and `state` check not unit-tested; live login UNTESTED |
-| Token refresh with rotation | **TESTED (offline, mocked)** | `TestTokenRotation::test_refresh_saves_new_token` |
-| `auth status` command | **TESTED (offline)** | `TestAuthStatusNeverPrintsTokens::test_status_output_does_not_contain_access_token`, `::test_status_prints_realm_id` |
-| `get_company_info` tool | **TESTED offline (mocked, URL shape and params checked); live check done by the user separately** | `TestURLShape::test_companyinfo_url_includes_realm_suffix`; `TestTransportLevelGetOnly::test_tool_issues_only_get[get_company_info_tool-...]`; `TestFaultErrorMessage::test_error_contains_fault_message` |
-| `get_profit_and_loss` tool | **TESTED offline (mocked, URL shape and params checked); live check done by the user separately** | `TestURLShape::test_profit_and_loss_url_shape`; `TestURLShapeParams::test_profit_and_loss_sends_start_and_end_date_params`; `TestDateValidation::test_pnl_invalid_start_date_no_http`, `::test_pnl_injection_attempt_no_http`, `::test_pnl_start_after_end_no_http`; `TestTransportLevelGetOnly::test_tool_issues_only_get[get_profit_and_loss_tool-...]` |
-| `get_balance_sheet` tool | **TESTED offline (mocked URL shape, start_date+end_date params, and period guard); as-of-date values TESTED (one date): on 2026-10-13, accrual basis, sandbox company, Total Assets 23,436.29, Total Liabilities 31,131.33 and Total Equity -7,695.04 matched the QuickBooks Balance Sheet screen, checked by hand through Claude Desktop, not repeated by reviewers** | `TestURLShapeParams::test_balance_sheet_sends_start_and_end_date_not_date_macro`; `TestReportPeriodGuard::test_mismatched_end_period_raises_and_returns_no_data`, `::test_matching_reply_returns_data`, `::test_missing_header_raises`, `::test_no_dates_requested_no_guard_and_no_date_params`; `TestURLShape::test_balance_sheet_url_shape`; `TestDateValidation::test_balance_sheet_invalid_date_no_http`; `TestTransportLevelGetOnly::test_tool_issues_only_get[get_balance_sheet_tool-...]` |
-| `list_accounts` tool | **TESTED offline (mocked, URL shape and params checked); live check done by the user separately** | `TestURLShape::test_list_accounts_url_shape_and_select_param`; `TestTransportLevelGetOnly::test_tool_issues_only_get[list_accounts_tool-...]` |
-| `invalid_grant` raises once, no retry | **TESTED (offline)** | `TestInvalidGrantNoSilentRetry::test_invalid_grant_raises_immediately` |
-| GET-only enforcement | **TESTED (transport-level + mutant)** | `TestTransportLevelGetOnly::test_tool_issues_only_get[*]`; mutant caught by `TestPathAllowlist::test_qbo_get_disallowed_path_raises_before_http` |
-| Path allowlist | **TESTED (offline + mutant)** | `TestPathAllowlist::test_qbo_get_disallowed_path_raises_before_http` (zero mock calls); `::test_disallowed_path_raises`; `::test_delete_path_raises`; `TestURLShape::test_companyinfo_arbitrary_suffix_still_rejected` |
-| Date validation (YYYY-MM-DD; injection; range) | **TESTED (offline)** | `TestDateValidation::test_word_today_rejected`, `::test_invalid_month_rejected`, `::test_injection_attempt_rejected`, `::test_start_after_end_rejected`, `::test_pnl_*_no_http`, `::test_balance_sheet_*_no_http` (all record zero HTTP calls) |
-| Non-200/non-retryable error includes Fault detail | **TESTED (offline)** | `TestFaultErrorMessage::test_error_contains_fault_message`, `::test_400_is_not_retried`, `::test_error_does_not_contain_bearer_keyword` |
-| Response-period guard (`ProfitAndLoss` & `BalanceSheet`) | **TESTED (offline + mutant)** | `TestReportPeriodGuard::test_mismatched_end_period_raises_and_returns_no_data`, `::test_matching_reply_returns_data`, `::test_missing_header_raises`, `::test_no_dates_requested_no_guard_and_no_date_params` |
-| SELECT-only check in `qbo_get` (`path=query`) | **TESTED (offline)** | `TestQueryPathValidation::test_missing_params_raises`, `::test_missing_query_key_raises`, `::test_empty_query_raises`, `::test_whitespace_only_query_raises`, `::test_non_select_query_raises`, `::test_insert_query_raises` |
-| Fixed query for `list_accounts` | **TESTED (offline)** | `TestFixedQuery::test_list_accounts_uses_fixed_base_query` |
-| Paging bounds enforced | **TESTED (offline)** | `TestPagingBounds::test_start_position_too_low_raises`, `::test_max_results_too_high_raises`, etc. |
-| Exactly 4 tools registered, names match design | **TESTED (runtime)** | `TestToolRegistration::test_exactly_four_tools`, `::test_tool_names_match_design`, `::test_no_extra_tools` |
-| Auth POSTs only to `QBO_TOKEN_URL` (not accounting API) | **TESTED (offline)** | `TestFlowPostsToTokenURLOnly::test_exchange_code_posts_to_token_url`, `::test_refresh_access_token_posts_to_token_url` |
-| `QBO_TOKEN_URL` host = `oauth.platform.intuit.com` (https) | **TESTED (offline)** | `TestAuthURLConstants::test_token_url_host`, `::test_token_url_path` |
-| `QBO_AUTH_URL` host = `appcenter.intuit.com` (https) | **TESTED (offline)** | `TestAuthURLConstants::test_auth_url_host`, `::test_auth_url_path` |
-| Prompt-injection containment | **TESTED (offline)** | `TestPromptInjection::test_injection_account_name_is_sanitised_and_wrapped` |
-| Realm ID mismatch refusal | **TESTED (offline)** | `TestRealmMismatch::test_per_request_realm_mismatch_raises`, `::test_startup_realm_mismatch_raises` |
-| Production env refusal | **TESTED (offline)** | `TestProductionRefusal::test_raises_when_environment_is_production` |
-| Scope hardcoded | **TESTED (offline)** | `TestScope::test_scope_is_hardcoded_accounting_only`, `::test_scope_not_configurable_from_env` |
-| Atomic token write | **TESTED (offline)** | `TestAtomicWrite::test_save_tokens_uses_os_replace` |
-| Secrets never in logs | **TESTED (offline)** | `TestSecretsNotInLogs::test_config_repr_does_not_leak_secrets`, `::test_secret_str_repr_redacted`, `::test_token_store_redact_function` |
-| Token path under `%LOCALAPPDATA%` | **TESTED (offline)** | `TestTokenPath::test_token_dir_under_localappdata`, `::test_token_file_under_localappdata` |
-| `minorversion=75` in every request | **TESTED (offline)** | `TestMinorVersion::test_minor_version_sent_in_every_get` |
-| Live QBO sandbox connection (all 4 tools via Claude Desktop) | **LIVE-TESTED by the user on Oct 12 2026 against Sandbox Company US b44a via Claude Desktop** | get_company_info, get_profit_and_loss, get_balance_sheet, list_accounts; 'create customer' refused (no write tool exists). Profit and loss Net Income matched the QuickBooks UI (user-reported); balance sheet values TESTED (one date): on 2026-10-13, accrual basis, sandbox company, Total Assets 23,436.29, Total Liabilities 31,131.33 and Total Equity -7,695.04 matched the QuickBooks Balance Sheet screen, checked by hand through Claude Desktop, not repeated by reviewers |
-| Token rotation under Claude Desktop | **LIVE-OBSERVED** | tokens.json rewritten after refresh, no private copy in the package folder |
-| `x_refresh_token_hard_expires_in` field presence | **UNVERIFIED** | Third-party source only; not seen in a live Intuit response |
-| `minorversion=75` validity | **UNVERIFIED** | Intuit’s blog confirms 75 is the minimum and default; whether a newer version exists is UNVERIFIED |
+| OAuth 2.0 authorization-code flow (`auth login`) | **Partly tested (offline)** | Token exchange/refresh tested offline (`TestTokenRotation`, `TestFlowPostsToTokenURLOnly`); callback server and `state` check not unit-tested; live login not covered by a test |
+| Token refresh with rotation | **Tested (offline, mocked)** | `TestTokenRotation::test_refresh_saves_new_token` |
+| `auth status` command | **Tested (offline)** | `TestAuthStatusNeverPrintsTokens::test_status_output_does_not_contain_access_token`, `::test_status_prints_realm_id` |
+| `get_company_info` tool | **Tested offline (mocked, URL shape and params checked); live check done by me separately** | `TestURLShape::test_companyinfo_url_includes_realm_suffix`; `TestTransportLevelGetOnly::test_tool_issues_only_get[get_company_info_tool-...]`; `TestFaultErrorMessage::test_error_contains_fault_message` |
+| `get_profit_and_loss` tool | **Tested offline (mocked, URL shape and params checked); live check done by me separately** | `TestURLShape::test_profit_and_loss_url_shape`; `TestURLShapeParams::test_profit_and_loss_sends_start_and_end_date_params`; `TestDateValidation::test_pnl_invalid_start_date_no_http`, `::test_pnl_injection_attempt_no_http`, `::test_pnl_start_after_end_no_http`; `TestTransportLevelGetOnly::test_tool_issues_only_get[get_profit_and_loss_tool-...]` |
+| `get_balance_sheet` tool | **Tested offline (mocked URL shape, start_date+end_date params, and period guard); as-of-date values Tested (one date): on 2026-10-13, accrual basis, sandbox company, Total Assets 23,436.29, Total Liabilities 31,131.33 and Total Equity -7,695.04 matched the QuickBooks Balance Sheet screen, checked by hand by me through Claude Desktop, not repeated by reviewers** | `TestURLShapeParams::test_balance_sheet_sends_start_and_end_date_not_date_macro`; `TestReportPeriodGuard::test_mismatched_end_period_raises_and_returns_no_data`, `::test_matching_reply_returns_data`, `::test_missing_header_raises`, `::test_no_dates_requested_no_guard_and_no_date_params`; `TestURLShape::test_balance_sheet_url_shape`; `TestDateValidation::test_balance_sheet_invalid_date_no_http`; `TestTransportLevelGetOnly::test_tool_issues_only_get[get_balance_sheet_tool-...]` |
+| `list_accounts` tool | **Tested offline (mocked, URL shape and params checked); live check done by me separately** | `TestURLShape::test_list_accounts_url_shape_and_select_param`; `TestTransportLevelGetOnly::test_tool_issues_only_get[list_accounts_tool-...]` |
+| `invalid_grant` raises once, no retry | **Tested (offline)** | `TestInvalidGrantNoSilentRetry::test_invalid_grant_raises_immediately` |
+| GET-only enforcement | **Tested (transport-level + mutant)** | `TestTransportLevelGetOnly::test_tool_issues_only_get[*]`; mutant caught by `TestPathAllowlist::test_qbo_get_disallowed_path_raises_before_http` |
+| Path allowlist | **Tested (offline + mutant)** | `TestPathAllowlist::test_qbo_get_disallowed_path_raises_before_http` (zero mock calls); `::test_disallowed_path_raises`; `::test_delete_path_raises`; `TestURLShape::test_companyinfo_arbitrary_suffix_still_rejected` |
+| Date validation (YYYY-MM-DD; injection; range) | **Tested (offline)** | `TestDateValidation::test_word_today_rejected`, `::test_invalid_month_rejected`, `::test_injection_attempt_rejected`, `::test_start_after_end_rejected`, `::test_pnl_*_no_http`, `::test_balance_sheet_*_no_http` (all record zero HTTP calls) |
+| Non-200/non-retryable error includes Fault detail | **Tested (offline)** | `TestFaultErrorMessage::test_error_contains_fault_message`, `::test_400_is_not_retried`, `::test_error_does_not_contain_bearer_keyword` |
+| Response-period guard (`ProfitAndLoss` & `BalanceSheet`) | **Tested (offline + mutant)** | `TestReportPeriodGuard::test_mismatched_end_period_raises_and_returns_no_data`, `::test_matching_reply_returns_data`, `::test_missing_header_raises`, `::test_no_dates_requested_no_guard_and_no_date_params` |
+| SELECT-only check in `qbo_get` (`path=query`) | **Tested (offline)** | `TestQueryPathValidation::test_missing_params_raises`, `::test_missing_query_key_raises`, `::test_empty_query_raises`, `::test_whitespace_only_query_raises`, `::test_non_select_query_raises`, `::test_insert_query_raises` |
+| Fixed query for `list_accounts` | **Tested (offline)** | `TestFixedQuery::test_list_accounts_uses_fixed_base_query` |
+| Paging bounds enforced | **Tested (offline)** | `TestPagingBounds::test_start_position_too_low_raises`, `::test_max_results_too_high_raises`, etc. |
+| Exactly 4 tools registered, names match design | **Tested (runtime)** | `TestToolRegistration::test_exactly_four_tools`, `::test_tool_names_match_design`, `::test_no_extra_tools` |
+| Auth POSTs only to `QBO_TOKEN_URL` (not accounting API) | **Tested (offline)** | `TestFlowPostsToTokenURLOnly::test_exchange_code_posts_to_token_url`, `::test_refresh_access_token_posts_to_token_url` |
+| `QBO_TOKEN_URL` host = `oauth.platform.intuit.com` (https) | **Tested (offline)** | `TestAuthURLConstants::test_token_url_host`, `::test_token_url_path` |
+| `QBO_AUTH_URL` host = `appcenter.intuit.com` (https) | **Tested (offline)** | `TestAuthURLConstants::test_auth_url_host`, `::test_auth_url_path` |
+| Prompt-injection containment | **Tested (offline)** | `TestPromptInjection::test_injection_account_name_is_sanitised_and_wrapped` |
+| Realm ID mismatch refusal | **Tested (offline)** | `TestRealmMismatch::test_per_request_realm_mismatch_raises`, `::test_startup_realm_mismatch_raises` |
+| Production env refusal | **Tested (offline)** | `TestProductionRefusal::test_raises_when_environment_is_production` |
+| Scope hardcoded | **Tested (offline)** | `TestScope::test_scope_is_hardcoded_accounting_only`, `::test_scope_not_configurable_from_env` |
+| Atomic token write | **Tested (offline)** | `TestAtomicWrite::test_save_tokens_uses_os_replace` |
+| Secrets never in logs | **Tested (offline)** | `TestSecretsNotInLogs::test_config_repr_does_not_leak_secrets`, `::test_secret_str_repr_redacted`, `::test_token_store_redact_function` |
+| Token path under `%LOCALAPPDATA%` | **Tested (offline)** | `TestTokenPath::test_token_dir_under_localappdata`, `::test_token_file_under_localappdata` |
+| `minorversion=75` in every request | **Tested (offline)** | `TestMinorVersion::test_minor_version_sent_in_every_get` |
+| Live QBO sandbox connection (all 4 tools via Claude Desktop) | **Tested live by me on Oct 12 2026 against Sandbox Company US b44a via Claude Desktop** | get_company_info, get_profit_and_loss, get_balance_sheet, list_accounts; 'create customer' refused (no write tool exists). Profit and loss Net Income matched the QuickBooks UI (checked by me); balance sheet values Tested (one date): on 2026-10-13, accrual basis, sandbox company, Total Assets 23,436.29, Total Liabilities 31,131.33 and Total Equity -7,695.04 matched the QuickBooks Balance Sheet screen, checked by hand by me through Claude Desktop, not repeated by reviewers |
+| Token rotation under Claude Desktop | **Observed live** | tokens.json rewritten after refresh, no private copy in the package folder |
+| `x_refresh_token_hard_expires_in` field presence | **Not tested** | Third-party source only; not seen in a live Intuit response |
+| `minorversion=75` validity | **Sourced from Intuit's blog** | Intuit's blog states 75 is the minimum and default; newer minor versions were not checked |
 
 ### Found live, missed by offline tests
 
 - **(a) `companyinfo` needs `/companyinfo/<realmId>`** — path was `.../companyinfo`; live returned HTTP 400 "Unsupported Operation"; correct path is `.../companyinfo/<realmId>`. Fixed in `get_company_info` / `qbo_get`. Backed by `TestURLShape::test_companyinfo_url_includes_realm_suffix`.
 - **(b) BalanceSheet `date_macro` takes named periods only** — live returned HTTP 400 "Invalid Enumeration" when `date_macro=2026-10-12` was sent; `date_macro` accepts only named macro strings (e.g. `This Year`), not YYYY-MM-DD values.
-- **(c) BalanceSheet ignores end_date alone and silently returns today's year-to-date** — mitigation: `start_date` + `end_date` together and a response-period guard (`_check_report_period`). Backed by `TestURLShapeParams::test_balance_sheet_sends_start_and_end_date_not_date_macro` and `TestReportPeriodGuard`. Balance sheet as-of-date values TESTED (one date): on 2026-10-13, accrual basis, sandbox company, Total Assets 23,436.29, Total Liabilities 31,131.33 and Total Equity -7,695.04 matched the QuickBooks Balance Sheet screen, checked by hand through Claude Desktop, not repeated by reviewers.
+- **(c) BalanceSheet ignores end_date alone and silently returns today's year-to-date** — mitigation: `start_date` + `end_date` together and a response-period guard (`_check_report_period`). Backed by `TestURLShapeParams::test_balance_sheet_sends_start_and_end_date_not_date_macro` and `TestReportPeriodGuard`. Balance sheet as-of-date values Tested (one date): on 2026-10-13, accrual basis, sandbox company, Total Assets 23,436.29, Total Liabilities 31,131.33 and Total Equity -7,695.04 matched the QuickBooks Balance Sheet screen, checked by hand by me through Claude Desktop, not repeated by reviewers.
 
 ---
 
@@ -79,9 +79,9 @@ that connects a **QuickBooks Online Sandbox** to Claude Desktop.
 | MCP SDK package: `mcp==2.3.0`, Python ≥ 3.10, class `MCPServer` | PyPI JSON API (live read) | **VERIFIED** |
 | QBO accounting API minor version: `75` (current, mandatory since Aug 2025) | Intuit deprecation notice (multiple sources) | **VERIFIED (sources cited)** |
 | Refresh token response field: `x_refresh_token_expires_in` (seconds) | Intuit OAuth2 docs | **VERIFIED** |
-| Hard expiry field: `x_refresh_token_hard_expires_in` (with request header `x-include-refresh-token-hard-expires-in: true`) | Third-party source only | **UNVERIFIED (third-party source, not seen in a live Intuit response)** |
+| Hard expiry field: `x_refresh_token_hard_expires_in` (with request header `x-include-refresh-token-hard-expires-in: true`) | Third-party source only | **Not tested (third-party source, not seen in a live Intuit response)** |
 | Claude Desktop config path on Windows: `%APPDATA%\Claude\claude_desktop_config.json` | Multiple sources | **VERIFIED** |
-| Refresh tokens: max 5 years, expire after 100 days non-use, rotate ~every 24 h | User confirmed | **USER-CONFIRMED** |
+| Refresh tokens: max 5 years, expire after 100 days non-use, rotate ~every 24 h | Confirmed by me | **Confirmed by me** |
 
 ---
 
@@ -134,7 +134,7 @@ Criteria:
 - Sandbox-only enforced. The server refuses to start unless the environment is `sandbox`.
 - Small enough to audit: four read-only tools, covered by offline tests.
 
-Not chosen: a native or hosted connector, because its code cannot be inspected or tested here, so read-only and sandbox-only could not be proved. An open-source server, because it would need a review of someone else's code that handles OAuth tokens, and many such servers include write tools (general statement, UNVERIFIED for any specific project).
+Not chosen: a native or hosted connector, because its code cannot be inspected or tested here, so read-only and sandbox-only could not be proved. An open-source server, because it would need a review of someone else's code that handles OAuth tokens, and many such servers include write tools (a general risk, not a finding about any named project).
 
 I compared the options on how well they fit these criteria and chose on that basis; I did not install or test the other options.
 
@@ -235,7 +235,7 @@ Fully quit and restart Claude Desktop after saving.
 .\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
-**TESTED (offline + runtime, mocked HTTP):** 121 tests, 121 passed.
+**Tested (offline + runtime, mocked HTTP):** 121 tests, 121 passed.
 
 ---
 
@@ -265,7 +265,7 @@ For a team of 10 sharing one QBO company:
    to a structured log sink (e.g., Azure Monitor). No token values in logs.
 8. **Rate limit handling**: QBO applies per-app rate limits. A token-bucket or
    fixed-window counter shared across replicas prevents exceeding the limit.
-   Exact limits are UNVERIFIED and not stated here.
+   Exact limits are not stated here.
 9. **High availability**: Run two or more replicas behind a load balancer.
    Stateless by design (all state in shared token store).
 10. **Secret rotation**: Rotate `QBO_CLIENT_SECRET` on a schedule via the Intuit

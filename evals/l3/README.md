@@ -11,8 +11,8 @@ Rerun by hand: (1) run `trend_cli.py run` for the three digests listed in `blind
 folder outside the repo; (3) start three fresh Claude sessions or subagents, give each only that folder and ask
 for the rubric's JSON for every draft; (4) save each reply as `runs/passN.json` and recompute the medians.
 What it can show: whether a careful reader (a model) sees the defects that the mechanical rules (L2) also catch,
-and how it rates the two live drafts Claude wrote in Claude Code sessions (D02 and D12; that they are live
-Claude output is UNVERIFIED, inferred from where they sit in `outputs\abc_inc\`).
+and how it rates two commentaries from earlier demo runs on the ABC workbook (D02 and D12; labelled live in
+`targets.json`).
 What it cannot show: real owner usefulness. The judge is Claude, the same model family that writes the
 drafts. 13 drafts and 3 runs are a small sample, and the bad drafts are one-line edits of one good draft.
 
@@ -22,8 +22,8 @@ Results (medians of 3 runs, criteria a hedging, b materiality, c owner, d causes
 |-----|-------------------------------|-------|--------|---|---|---|---|---|---|
 | D11 | good_abc_2026-06              | good  | -      | 5 | 2 | 4 | 5 | 5 | 5 |
 | D01 | good_mini_no_adjustments      | good  | -      | 5 | 5 | 4 | 5 | 5 | 2 |
-| D02 | live, 12-month run            | live  | -      | 5 | 2 | 4 | 5 | 5 | 5 |
-| D12 | live, 6-month window run      | live  | -      | 5 | 2 | 3 | 5 | 5 | 4 |
+| D02 | earlier demo run, 12-month    | live  | -      | 5 | 2 | 4 | 5 | 5 | 5 |
+| D12 | earlier demo run, 6-month     | live  | -      | 5 | 2 | 3 | 5 | 5 | 4 |
 | D03 | g3_causal_claim               | bad   | d      | 4 | 2 | 4 | 1 | 5 | 5 |
 | D07 | g4_direction_mismatch         | bad   | d      | 5 | 2 | 3 | 1 | 5 | 5 |
 | D10 | g5_missing_adjusted_pair      | bad   | e      | 5 | 2 | 4 | 5 | 2 | 5 |
