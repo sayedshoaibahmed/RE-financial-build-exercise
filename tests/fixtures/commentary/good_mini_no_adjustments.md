@@ -1,4 +1,4 @@
-DRAFT — AI-generated from digest.json. Not reviewed. For analyst review.
+DRAFT - AI-generated from digest.json. Not reviewed. For analyst review.
 
 # Monthly trend commentary, Jun 2025
 

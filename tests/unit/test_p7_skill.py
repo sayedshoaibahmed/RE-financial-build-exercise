@@ -341,3 +341,56 @@ def test_templates_are_valid_and_annotated():
     m = yaml.safe_load((SKILL / "templates" / "mapping.template.yaml").read_text(encoding="utf-8"))
     assert isinstance(m, list) and m and set(m[0]) >= {"account", "section", "approved_by", "approved_on"}
     assert m[0]["approved_by"] is None                                  # a template is never an approval
+
+
+# ================================================================ P7b: plain-ASCII banner, no mojibake
+
+BANNER = "DRAFT - AI-generated from digest.json. Not reviewed. For analyst review."
+TEXT_FILES = ([SKILL_MD] + sorted((SKILL / "reference").glob("*.md"))
+              + sorted((ROOT / "tests" / "fixtures" / "commentary").glob("*.md")))
+
+
+def non_ascii_lines():
+    out = []
+    for f in TEXT_FILES:
+        raw = f.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{f.name} has a BOM"
+        text = raw.decode("utf-8")                                   # must be valid UTF-8
+        for n, ln in enumerate(text.splitlines(), start=1):
+            if any(ord(c) > 127 for c in ln):
+                out.append((f.name, n, ln))
+    return out
+
+
+def test_the_draft_banner_is_plain_ascii_everywhere():
+    for f in (SKILL_MD, SKILL / "reference" / "commentary_rules.md", SKILL / "reference" / "example_commentary.md",
+              *(ROOT / "tests" / "fixtures" / "commentary").glob("*.md")):
+        text = f.read_text(encoding="utf-8")
+        banners = [l for l in text.splitlines() if "AI-generated from digest.json" in l]
+        assert banners, f.name
+        for l in banners:
+            assert l.isascii(), (f.name, l)
+            assert "DRAFT -" in l and "Not reviewed" in l and "analyst review" in l
+    assert BANNER in TEXT and BANNER in (SKILL / "reference" / "example_commentary.md").read_text(encoding="utf-8")
+
+
+def test_the_only_non_ascii_left_in_the_skill_and_fixture_text_is_the_proposed_header():
+    left = non_ascii_lines()
+    assert [(name, ln.strip().startswith("`# PROPOSED")) for name, _, ln in left] == [("mapping_workflow.md", True)], left
+
+
+def test_no_mojibake_in_the_skill_and_fixture_text():
+    for f in TEXT_FILES:
+        text = f.read_text(encoding="utf-8")
+        assert not re.search("â€|Ã.|Â.|ï»¿|�", text), f.name
+
+
+def test_the_ascii_banner_passes_the_checker_and_the_dash_is_not_required(abc, abc_metrics, abc_flagset):
+    from trend.grounding import check_draft
+    d = build_digest(abc.company, abc_metrics, abc_flagset, abc.mapped, META)
+    good = (ROOT / "tests" / "fixtures" / "commentary" / "good_abc_2026-06.md").read_text(encoding="utf-8")
+    assert good.startswith(BANNER) and check_draft(good, d) == []
+    old_style = good.replace(BANNER, BANNER.replace("DRAFT - ", "DRAFT — "))
+    assert check_draft(old_style, d) == []                            # the checker never depended on the dash
+    assert [f.code for f in check_draft(good.replace("DRAFT - AI-generated from digest.json. Not reviewed. For analyst review.",
+                                                     "AI-generated from digest.json."), d)] == ["G6"]

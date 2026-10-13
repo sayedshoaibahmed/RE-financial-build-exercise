@@ -263,11 +263,11 @@ def test_g6_missing_banner(digest):
 
 def test_g6_banner_must_be_the_first_line_and_say_draft(digest):
     assert codes("# Title\n" + GOOD, digest) == ["G6"]
-    assert codes(edit("DRAFT — AI-generated from digest.json. Not reviewed. For analyst review.",
+    assert codes(edit("DRAFT - AI-generated from digest.json. Not reviewed. For analyst review.",
                       "AI-generated from digest.json. Not reviewed."), digest) == ["G6"]
     assert codes("\n\n" + GOOD, digest) == []                  # leading blank lines are fine
-    assert codes(edit("DRAFT — AI-generated from digest.json. Not reviewed. For analyst review.",
-                      "DRAFT — AI-generated from metrics.json (0a1b2c3d). Not reviewed. For reviewer completion."), digest) == []
+    assert codes(edit("DRAFT - AI-generated from digest.json. Not reviewed. For analyst review.",
+                      "DRAFT - AI-generated from metrics.json (0a1b2c3d). Not reviewed. For reviewer completion."), digest) == []
 
 
 def test_g7_malformed_tokens(digest):
@@ -369,7 +369,7 @@ def test_the_checker_works_on_a_tiny_company_digest(tmp_path):
     m = compute_metrics(c.mapped, c.recon, c.company)
     fs = compute_flags(c.mapped, c.recon, m, c.company)
     d = build_digest(c.company, m, fs, c.mapped, META)
-    draft = ("DRAFT — AI-generated from digest.json. Not reviewed. For analyst review.\n\n"
+    draft = ("DRAFT - AI-generated from digest.json. Not reviewed. For analyst review.\n\n"
              "## Headline\n- Revenue was {{rep.rev.total.2025-06}}; gross margin was {{rep.gm_pct.2025-06}}.\n"
              "- Operating income was {{rep.opinc.2025-06}}.\n- Operating margin was {{rep.opinc_margin_pct.2025-06}}.\n"
              "## Revenue\n- Steady.\n## Margins\n- Steady.\n## Operating expenses\n- Steady.\n"

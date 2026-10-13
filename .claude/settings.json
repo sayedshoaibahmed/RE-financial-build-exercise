@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "ask": [
+      "Edit(/companies/**/mapping.yaml)",
+      "Edit(/companies/**/company.yaml)"
+    ],
+    "deny": [
+      "Read(**/metrics.json)",
+      "Read(**/trend_pack.xlsx)",
+      "Read(/data/**)",
+      "Read(**/.env)",
+      "Read(**/tokens.json)",
+      "Read(//c/Users/shoai/AppData/Local/qbo-mcp/**)",
+      "Edit(/tests/golden/abc_flags.expected.json)",
+      "Edit(**/reference/commentary_rules.yaml)"
+    ]
+  }
+}

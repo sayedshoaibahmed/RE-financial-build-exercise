@@ -5,7 +5,7 @@ The commentary is a DRAFT for analyst review. Scripts compute every number; you 
 `commentary_rules.yaml` (the checker reads that file; never edit it to make a draft pass).
 
 ## Structure
-1. First line, exactly one banner: `DRAFT — AI-generated from digest.json. Not reviewed. For analyst review.`
+1. First line, exactly one banner: `DRAFT - AI-generated from digest.json. Not reviewed. For analyst review.`
 2. Headings, in this order: **Headline** (3 bullets at most), **Revenue**, **Margins**, **Operating expenses**,
    **Questions for the reviewer**, **Data notes**.
 3. Body (everything between the banner and Data notes) is 250 words at most. A `{{token}}` counts as one word.

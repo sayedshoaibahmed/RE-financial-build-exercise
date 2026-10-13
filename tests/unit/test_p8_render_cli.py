@@ -60,7 +60,7 @@ def test_tokens_are_replaced_by_display_strings_and_the_banner_is_kept(tmp_path,
     cli("render", "--run-dir", run)
     md = (run / "commentary.md").read_text(encoding="utf-8")
     body = md.split("## Audit appendix")[0]
-    assert md.startswith("DRAFT — AI-generated from digest.json. Not reviewed. For analyst review.")
+    assert md.startswith("DRAFT - AI-generated from digest.json. Not reviewed. For analyst review.")
     assert "{{" not in body and "}}" not in body
     assert "Revenue was 195,898.16, -5.98% on the prior month." in body
     assert "Dec 2025 operating income was 534,551.41 reported and -375,217.90 adjusted, a difference of -909,769.31." in body
