@@ -1,0 +1,18 @@
+{
+  "note": "Written before any judging. For each known draft: its expected label and the L3 criterion its one deliberate edit targets. null means the edit is a mechanical (L2) defect with no matching L3 criterion, so no L3 prediction is made for it.",
+  "drafts": {
+    "tests/fixtures/commentary/good_abc_2026-06.md": {"label": "good", "target": null},
+    "tests/fixtures/commentary/good_mini_no_adjustments.md": {"label": "good", "target": null},
+    "evals/bad_drafts/g1_unknown_token.md": {"label": "bad", "target": null, "why": "token for a period not in the digest; unsupported number (could show under c)"},
+    "evals/bad_drafts/g2_bare_number.md": {"label": "bad", "target": null, "why": "typed-out number; unsupported number (could show under c)"},
+    "evals/bad_drafts/g3_causal_claim.md": {"label": "bad", "target": "d", "why": "'because of fewer usage fees'"},
+    "evals/bad_drafts/g4_direction_mismatch.md": {"label": "bad", "target": "d", "why": "'rose' while revenue fell; rubric d anchor 1 covers a contradicted direction"},
+    "evals/bad_drafts/g5_missing_adjusted_pair.md": {"label": "bad", "target": "e", "why": "Dec 2025 reported figure without the adjusted one"},
+    "evals/bad_drafts/g5_missing_coverage.md": {"label": "bad", "target": "b", "why": "a medium/high flag (commissions) dropped"},
+    "evals/bad_drafts/g6_banner.md": {"label": "bad", "target": "a", "why": "draft label removed"},
+    "evals/bad_drafts/g8_banned_word.md": {"label": "bad", "target": "a", "why": "'will recover' prediction"},
+    "evals/bad_drafts/g9_too_long.md": {"label": "bad", "target": "f", "why": "reviewer question padded with repeated filler"},
+    "outputs/abc_inc/2026-06_w12-2026-06/commentary_draft.md": {"label": "live (unlabelled)", "target": null},
+    "outputs/abc_inc/2026-06_w6-2026-03/commentary_draft.md": {"label": "live (unlabelled)", "target": null}
+  }
+}

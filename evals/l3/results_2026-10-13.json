@@ -1,0 +1,632 @@
+{
+ "date": "2026-10-13",
+ "judge": "Claude (claude-opus-5-5, as self-reported by each judge subagent; UNVERIFIED), 3 independent subagent passes, each given only the rubric, the 3 digests under neutral names, the blind drafts and the draft-to-digest assignment",
+ "judge_model": [
+  "claude-opus-5-5"
+ ],
+ "note": "The judge is Claude, the same model family that writes the commentary; scores are a model opinion, not ground truth. Manual and ungated.",
+ "rubric_sha256_lf": "d55406e9c2a2a9ad519ec4323c919f709b1ee564bc106f75a4b712e2643a51ae",
+ "digest_sha256_lf": {
+  "abc": "7354a3e098bdc5e737e1f8c4912d7966d74c636f091e22f27e0da76f961d2d25",
+  "abc_w6": "1bd17fc3c900de9fa5c523fe9c1028379d5f1472a06058354ffc9f94f9c42e61",
+  "mini": "c1b77d0fbee0c9a49dd216987d27bc9aa7fa0a13e4258caa88054083778d0471"
+ },
+ "raw_runs": [
+  "runs/pass1.json",
+  "runs/pass2.json",
+  "runs/pass3.json"
+ ],
+ "drafts": {
+  "D01": {
+   "source": "tests/fixtures/commentary/good_mini_no_adjustments.md",
+   "label": "good",
+   "target": null,
+   "runs": [
+    {
+     "a": 5,
+     "b": 5,
+     "c": 4,
+     "d": 5,
+     "e": 5,
+     "f": 2
+    },
+    {
+     "a": 5,
+     "b": 5,
+     "c": 4,
+     "d": 5,
+     "e": 5,
+     "f": 2
+    },
+    {
+     "a": 5,
+     "b": 5,
+     "c": 4,
+     "d": 5,
+     "e": 5,
+     "f": 2
+    }
+   ],
+   "median": {
+    "a": 5,
+    "b": 5,
+    "c": 4,
+    "d": 5,
+    "e": 5,
+    "f": 2
+   },
+   "spread": {
+    "a": 0,
+    "b": 0,
+    "c": 0,
+    "d": 0,
+    "e": 0,
+    "f": 0
+   }
+  },
+  "D02": {
+   "source": "outputs/abc_inc/2026-06_w12-2026-06/commentary_draft.md",
+   "label": "live (unlabelled)",
+   "target": null,
+   "runs": [
+    {
+     "a": 5,
+     "b": 2,
+     "c": 4,
+     "d": 5,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 5,
+     "b": 2,
+     "c": 5,
+     "d": 5,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 5,
+     "b": 2,
+     "c": 4,
+     "d": 5,
+     "e": 4,
+     "f": 5
+    }
+   ],
+   "median": {
+    "a": 5,
+    "b": 2,
+    "c": 4,
+    "d": 5,
+    "e": 5,
+    "f": 5
+   },
+   "spread": {
+    "a": 0,
+    "b": 0,
+    "c": 1,
+    "d": 0,
+    "e": 1,
+    "f": 0
+   }
+  },
+  "D03": {
+   "source": "evals/bad_drafts/g3_causal_claim.md",
+   "label": "bad",
+   "target": "d",
+   "runs": [
+    {
+     "a": 4,
+     "b": 2,
+     "c": 4,
+     "d": 1,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 4,
+     "b": 2,
+     "c": 5,
+     "d": 1,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 4,
+     "b": 2,
+     "c": 4,
+     "d": 1,
+     "e": 4,
+     "f": 5
+    }
+   ],
+   "median": {
+    "a": 4,
+    "b": 2,
+    "c": 4,
+    "d": 1,
+    "e": 5,
+    "f": 5
+   },
+   "spread": {
+    "a": 0,
+    "b": 0,
+    "c": 1,
+    "d": 0,
+    "e": 1,
+    "f": 0
+   }
+  },
+  "D04": {
+   "source": "evals/bad_drafts/g6_banner.md",
+   "label": "bad",
+   "target": "a",
+   "runs": [
+    {
+     "a": 3,
+     "b": 2,
+     "c": 4,
+     "d": 4,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 3,
+     "b": 2,
+     "c": 5,
+     "d": 5,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 3,
+     "b": 2,
+     "c": 4,
+     "d": 5,
+     "e": 4,
+     "f": 5
+    }
+   ],
+   "median": {
+    "a": 3,
+    "b": 2,
+    "c": 4,
+    "d": 5,
+    "e": 5,
+    "f": 5
+   },
+   "spread": {
+    "a": 0,
+    "b": 0,
+    "c": 1,
+    "d": 1,
+    "e": 1,
+    "f": 0
+   }
+  },
+  "D05": {
+   "source": "evals/bad_drafts/g5_missing_coverage.md",
+   "label": "bad",
+   "target": "b",
+   "runs": [
+    {
+     "a": 5,
+     "b": 2,
+     "c": 4,
+     "d": 4,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 5,
+     "b": 1,
+     "c": 5,
+     "d": 5,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 5,
+     "b": 2,
+     "c": 4,
+     "d": 5,
+     "e": 4,
+     "f": 5
+    }
+   ],
+   "median": {
+    "a": 5,
+    "b": 2,
+    "c": 4,
+    "d": 5,
+    "e": 5,
+    "f": 5
+   },
+   "spread": {
+    "a": 0,
+    "b": 1,
+    "c": 1,
+    "d": 1,
+    "e": 1,
+    "f": 0
+   }
+  },
+  "D06": {
+   "source": "evals/bad_drafts/g1_unknown_token.md",
+   "label": "bad",
+   "target": null,
+   "runs": [
+    {
+     "a": 5,
+     "b": 2,
+     "c": 3,
+     "d": 4,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 5,
+     "b": 2,
+     "c": 3,
+     "d": 5,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 5,
+     "b": 2,
+     "c": 3,
+     "d": 5,
+     "e": 4,
+     "f": 5
+    }
+   ],
+   "median": {
+    "a": 5,
+    "b": 2,
+    "c": 3,
+    "d": 5,
+    "e": 5,
+    "f": 5
+   },
+   "spread": {
+    "a": 0,
+    "b": 0,
+    "c": 0,
+    "d": 1,
+    "e": 1,
+    "f": 0
+   }
+  },
+  "D07": {
+   "source": "evals/bad_drafts/g4_direction_mismatch.md",
+   "label": "bad",
+   "target": "d",
+   "runs": [
+    {
+     "a": 4,
+     "b": 2,
+     "c": 3,
+     "d": 1,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 5,
+     "b": 2,
+     "c": 3,
+     "d": 1,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 5,
+     "b": 2,
+     "c": 3,
+     "d": 1,
+     "e": 4,
+     "f": 5
+    }
+   ],
+   "median": {
+    "a": 5,
+    "b": 2,
+    "c": 3,
+    "d": 1,
+    "e": 5,
+    "f": 5
+   },
+   "spread": {
+    "a": 1,
+    "b": 0,
+    "c": 0,
+    "d": 0,
+    "e": 1,
+    "f": 0
+   }
+  },
+  "D08": {
+   "source": "evals/bad_drafts/g2_bare_number.md",
+   "label": "bad",
+   "target": null,
+   "runs": [
+    {
+     "a": 5,
+     "b": 2,
+     "c": 3,
+     "d": 4,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 5,
+     "b": 2,
+     "c": 3,
+     "d": 5,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 5,
+     "b": 2,
+     "c": 3,
+     "d": 5,
+     "e": 4,
+     "f": 5
+    }
+   ],
+   "median": {
+    "a": 5,
+    "b": 2,
+    "c": 3,
+    "d": 5,
+    "e": 5,
+    "f": 5
+   },
+   "spread": {
+    "a": 0,
+    "b": 0,
+    "c": 0,
+    "d": 1,
+    "e": 1,
+    "f": 0
+   }
+  },
+  "D09": {
+   "source": "evals/bad_drafts/g9_too_long.md",
+   "label": "bad",
+   "target": "f",
+   "runs": [
+    {
+     "a": 5,
+     "b": 2,
+     "c": 3,
+     "d": 4,
+     "e": 5,
+     "f": 2
+    },
+    {
+     "a": 5,
+     "b": 2,
+     "c": 4,
+     "d": 5,
+     "e": 5,
+     "f": 2
+    },
+    {
+     "a": 5,
+     "b": 2,
+     "c": 3,
+     "d": 5,
+     "e": 4,
+     "f": 1
+    }
+   ],
+   "median": {
+    "a": 5,
+    "b": 2,
+    "c": 3,
+    "d": 5,
+    "e": 5,
+    "f": 2
+   },
+   "spread": {
+    "a": 0,
+    "b": 0,
+    "c": 1,
+    "d": 1,
+    "e": 1,
+    "f": 1
+   }
+  },
+  "D10": {
+   "source": "evals/bad_drafts/g5_missing_adjusted_pair.md",
+   "label": "bad",
+   "target": "e",
+   "runs": [
+    {
+     "a": 5,
+     "b": 2,
+     "c": 4,
+     "d": 4,
+     "e": 2,
+     "f": 5
+    },
+    {
+     "a": 5,
+     "b": 2,
+     "c": 5,
+     "d": 5,
+     "e": 2,
+     "f": 5
+    },
+    {
+     "a": 5,
+     "b": 2,
+     "c": 4,
+     "d": 5,
+     "e": 2,
+     "f": 5
+    }
+   ],
+   "median": {
+    "a": 5,
+    "b": 2,
+    "c": 4,
+    "d": 5,
+    "e": 2,
+    "f": 5
+   },
+   "spread": {
+    "a": 0,
+    "b": 0,
+    "c": 1,
+    "d": 1,
+    "e": 0,
+    "f": 0
+   }
+  },
+  "D11": {
+   "source": "tests/fixtures/commentary/good_abc_2026-06.md",
+   "label": "good",
+   "target": null,
+   "runs": [
+    {
+     "a": 5,
+     "b": 2,
+     "c": 4,
+     "d": 4,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 5,
+     "b": 2,
+     "c": 5,
+     "d": 5,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 5,
+     "b": 2,
+     "c": 4,
+     "d": 5,
+     "e": 4,
+     "f": 5
+    }
+   ],
+   "median": {
+    "a": 5,
+    "b": 2,
+    "c": 4,
+    "d": 5,
+    "e": 5,
+    "f": 5
+   },
+   "spread": {
+    "a": 0,
+    "b": 0,
+    "c": 1,
+    "d": 1,
+    "e": 1,
+    "f": 0
+   }
+  },
+  "D12": {
+   "source": "outputs/abc_inc/2026-06_w6-2026-03/commentary_draft.md",
+   "label": "live (unlabelled)",
+   "target": null,
+   "runs": [
+    {
+     "a": 5,
+     "b": 2,
+     "c": 4,
+     "d": 5,
+     "e": 5,
+     "f": 4
+    },
+    {
+     "a": 5,
+     "b": 1,
+     "c": 3,
+     "d": 5,
+     "e": 5,
+     "f": 4
+    },
+    {
+     "a": 5,
+     "b": 2,
+     "c": 3,
+     "d": 5,
+     "e": 4,
+     "f": 4
+    }
+   ],
+   "median": {
+    "a": 5,
+    "b": 2,
+    "c": 3,
+    "d": 5,
+    "e": 5,
+    "f": 4
+   },
+   "spread": {
+    "a": 0,
+    "b": 1,
+    "c": 1,
+    "d": 0,
+    "e": 1,
+    "f": 0
+   }
+  },
+  "D13": {
+   "source": "evals/bad_drafts/g8_banned_word.md",
+   "label": "bad",
+   "target": "a",
+   "runs": [
+    {
+     "a": 3,
+     "b": 2,
+     "c": 4,
+     "d": 4,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 2,
+     "b": 2,
+     "c": 5,
+     "d": 5,
+     "e": 5,
+     "f": 5
+    },
+    {
+     "a": 2,
+     "b": 2,
+     "c": 4,
+     "d": 5,
+     "e": 4,
+     "f": 5
+    }
+   ],
+   "median": {
+    "a": 2,
+    "b": 2,
+    "c": 4,
+    "d": 5,
+    "e": 5,
+    "f": 5
+   },
+   "spread": {
+    "a": 1,
+    "b": 0,
+    "c": 1,
+    "d": 1,
+    "e": 1,
+    "f": 0
+   }
+  }
+ }
+}

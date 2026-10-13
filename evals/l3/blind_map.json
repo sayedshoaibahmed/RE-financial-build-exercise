@@ -1,0 +1,107 @@
+{
+ "seed": 3032919086,
+ "note": "Never show this file to a judge.",
+ "digest_runs": {
+  "abc": "trend_cli.py run --company-dir companies/abc_inc",
+  "abc_w6": "trend_cli.py run --company-dir companies/abc_inc --as-of 2026-06 --window 6 --window-end 2026-03",
+  "mini": "evals/run_evals.py build_mini (6-month mini company), then trend_cli.py run"
+ },
+ "digest_sha256_lf": {
+  "abc": "7354a3e098bdc5e737e1f8c4912d7966d74c636f091e22f27e0da76f961d2d25",
+  "abc_w6": "1bd17fc3c900de9fa5c523fe9c1028379d5f1472a06058354ffc9f94f9c42e61",
+  "mini": "c1b77d0fbee0c9a49dd216987d27bc9aa7fa0a13e4258caa88054083778d0471"
+ },
+ "drafts": {
+  "D01": {
+   "source": "tests/fixtures/commentary/good_mini_no_adjustments.md",
+   "label": "good",
+   "target": null,
+   "digest_run": "mini",
+   "sha256_lf": "6e8512f0c0594ce77cbe6c5541b238b9ece45ccaf82dd1f88c508d15c908514d"
+  },
+  "D02": {
+   "source": "outputs/abc_inc/2026-06_w12-2026-06/commentary_draft.md",
+   "label": "live (unlabelled)",
+   "target": null,
+   "digest_run": "abc",
+   "sha256_lf": "26c6fe0ae552e832fd9732016ea271e5e52c877ffbfb69edbd1b4e7f8710f791"
+  },
+  "D03": {
+   "source": "evals/bad_drafts/g3_causal_claim.md",
+   "label": "bad",
+   "target": "d",
+   "digest_run": "abc",
+   "sha256_lf": "07838754f030175213ef4f6a236174882d2a97fa26ffeef108b220061b6ed28f"
+  },
+  "D04": {
+   "source": "evals/bad_drafts/g6_banner.md",
+   "label": "bad",
+   "target": "a",
+   "digest_run": "abc",
+   "sha256_lf": "feda34a65284e148d1b690f2f4a25b3d512596a9d1daf9ca557861fb3d7310e0"
+  },
+  "D05": {
+   "source": "evals/bad_drafts/g5_missing_coverage.md",
+   "label": "bad",
+   "target": "b",
+   "digest_run": "abc",
+   "sha256_lf": "d560347105246a4486709ea2d255759d9f287b1b3fa31b55633764cb3c381696"
+  },
+  "D06": {
+   "source": "evals/bad_drafts/g1_unknown_token.md",
+   "label": "bad",
+   "target": null,
+   "digest_run": "abc",
+   "sha256_lf": "38b29188a64d97e6f1d65e8367d08895c7b3db8d95fc38dfe890bdc33e78e9f7"
+  },
+  "D07": {
+   "source": "evals/bad_drafts/g4_direction_mismatch.md",
+   "label": "bad",
+   "target": "d",
+   "digest_run": "abc",
+   "sha256_lf": "8225b9531f87cc9611cf583b1ee3ed7eaef5dfe5d501e06c65478c3fc36a3811"
+  },
+  "D08": {
+   "source": "evals/bad_drafts/g2_bare_number.md",
+   "label": "bad",
+   "target": null,
+   "digest_run": "abc",
+   "sha256_lf": "2360adbbad38fd24b6cbc2fa2637f9fdd2189ecf0d95e290d144456f1e07259d"
+  },
+  "D09": {
+   "source": "evals/bad_drafts/g9_too_long.md",
+   "label": "bad",
+   "target": "f",
+   "digest_run": "abc",
+   "sha256_lf": "455afacb3f6d0e9f96e572be6fd7aa363ea3b3f54eb80db7bf0318eade22a863"
+  },
+  "D10": {
+   "source": "evals/bad_drafts/g5_missing_adjusted_pair.md",
+   "label": "bad",
+   "target": "e",
+   "digest_run": "abc",
+   "sha256_lf": "b3623b866cf7c11575e367239f186387225c4ae859af6facfe03d27d6b11845d"
+  },
+  "D11": {
+   "source": "tests/fixtures/commentary/good_abc_2026-06.md",
+   "label": "good",
+   "target": null,
+   "digest_run": "abc",
+   "sha256_lf": "62ef079518a3a3b79a13c74db928bfa691c282d573ebe5a6d79fa1bea2e31733"
+  },
+  "D12": {
+   "source": "outputs/abc_inc/2026-06_w6-2026-03/commentary_draft.md",
+   "label": "live (unlabelled)",
+   "target": null,
+   "digest_run": "abc_w6",
+   "sha256_lf": "4b691b48edd892904a3c7d1f842f2f3ae3eab383c222569fa4d899fe7df6e866"
+  },
+  "D13": {
+   "source": "evals/bad_drafts/g8_banned_word.md",
+   "label": "bad",
+   "target": "a",
+   "digest_run": "abc",
+   "sha256_lf": "af15b790e6eef50efa293299a6f3ec1c760e4ef67875fc8f682265c257549d13"
+  }
+ }
+}
