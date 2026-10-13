@@ -66,3 +66,11 @@ class ControlTotal:
 
     def __post_init__(self):
         _need_decimal(self.amount, "ControlTotal.amount")
+
+
+class MetricsError(Exception):
+    """Metrics cannot be produced (bad arguments, unknown adjustment account, incomplete reconciliation)."""
+
+    def __init__(self, code, message):
+        self.code = code
+        super().__init__(f"{code}: {message}")

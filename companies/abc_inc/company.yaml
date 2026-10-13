@@ -14,3 +14,11 @@ source:
     - {header: "S & M Payroll", total: "Total S & M Payroll"}
     - {header: "Marketing",     total: "Total Marketing"}
   derived_rows: {gross_profit: "Gross Profit", operating_income: "Operating Income", net_income: "Net Income"}
+
+adjustments:
+  - {account: "Income Tax Benefit", periods: ["2025-12"], reason: "One-time tax benefit (firm, 13 Oct)"}
+  - {account: "Stock-Based Compensation Expense", periods: ["2025-12"], reason: "One-time stock comp (firm, 13 Oct)"}
+
+windows:
+  lengths: [12]
+  end: latest

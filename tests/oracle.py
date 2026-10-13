@@ -13,6 +13,7 @@ import openpyxl
 WORKBOOK = Path(__file__).resolve().parent.parent / "data" / "ABC Inc - Financial Statements.xlsx"
 SHEET = "Income Statement"
 DERIVED = {"Gross Profit", "Operating Income", "Net Income"}
+SECTIONS = {"Income": "income", "Cost of Goods Sold": "cogs", "Operating Expenses": "opex"}
 
 
 def _is_num(v):
@@ -37,6 +38,7 @@ def scan(path=WORKBOOK):
             period_cols.append(c)
 
     leaves, subtotals, derived, headers = [], [], [], []
+    cur = None
     for r in range(6, ws.max_row + 1):
         a, b = ws.cell(r, 1).value, ws.cell(r, 2).value
         label = a if a else b
@@ -48,12 +50,14 @@ def scan(path=WORKBOOK):
         any_num = any(_is_num(v) for v in vals)
         if not any_num:
             headers.append((r, label))
+            if label in SECTIONS:
+                cur = SECTIONS[label]
         elif label in DERIVED:
             derived.append((r, label))
         elif label.startswith("Total"):
             subtotals.append((r, label))
         elif all_num:
-            leaves.append({"row": r, "label": label, "values": vals})
+            leaves.append({"row": r, "label": label, "values": vals, "section": cur})
         else:
             raise AssertionError(f"oracle: partial numeric row {r} {label!r}")
 
@@ -68,3 +72,64 @@ def scan(path=WORKBOOK):
         "slash_labels": [x["label"] for x in leaves if "/" in x["label"]],
         "all_zero_leaves": [x["label"] for x in leaves if all(v == 0 for v in x["values"])],
     }
+
+
+# ---------------------------------------------------------------------------
+# Naive metric calculations (P4). Independent of the trend package: plain loops,
+# exact Fractions, no Decimal, no shared helpers. Percent values are in percent units.
+# ---------------------------------------------------------------------------
+from fractions import Fraction  # noqa: E402
+
+import yaml  # noqa: E402
+
+
+def cents(v):
+    """Workbook float -> exact 2dp Fraction."""
+    return Fraction(round(Fraction(repr(v)) * 100), 100)
+
+
+def shift(period, k):
+    y, m = int(period[:4]), int(period[5:7])
+    n = y * 12 + (m - 1) + k
+    return f"{n // 12:04d}-{n % 12 + 1:02d}"
+
+
+def monthly(o, zeroed=()):
+    """{period: {rev, cogs, gp, opex, opinc}} as Fractions. `zeroed` = {(account, period)}."""
+    out = {}
+    for i, p in enumerate(o["periods"]):
+        t = {"income": Fraction(0), "cogs": Fraction(0), "opex": Fraction(0)}
+        for leaf in o["leaves"]:
+            if (leaf["label"], p) in zeroed:
+                continue
+            t[leaf["section"]] += cents(leaf["values"][i])
+        out[p] = {"rev": t["income"], "cogs": t["cogs"], "gp": t["income"] - t["cogs"],
+                  "opex": t["opex"], "opinc": t["income"] - t["cogs"] - t["opex"]}
+    return out
+
+
+def by_category(o, mapping_path, field, zeroed=()):
+    """{period: {category: Fraction}} over opex leaves, using mapping.yaml read raw with PyYAML."""
+    entries = {e["account"]: e for e in yaml.safe_load(Path(mapping_path).read_text(encoding="utf-8"))}
+    out = {p: {} for p in o["periods"]}
+    for leaf in o["leaves"]:
+        if leaf["section"] != "opex":
+            continue
+        cat = entries[leaf["label"]][field]
+        for i, p in enumerate(o["periods"]):
+            if (leaf["label"], p) in zeroed:
+                continue
+            out[p][cat] = out[p].get(cat, Fraction(0)) + cents(leaf["values"][i])
+    return out
+
+
+def window(series, end, n):
+    """Sum of series[...] over the n calendar months ending `end`; None if any month is absent."""
+    months = [shift(end, -i) for i in range(n)]
+    if any(m not in series for m in months):
+        return None
+    return sum((series[m] for m in months), Fraction(0))
+
+
+def pct(num, den):
+    return None if den <= 0 else num / den * 100

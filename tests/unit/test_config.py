@@ -21,9 +21,9 @@ def test_abc_company_yaml_loads():
     assert s.path.is_absolute() and s.path.exists()  # relative path resolved against repo root
 
 
-def test_abc_company_yaml_has_only_source_block():
+def test_abc_company_yaml_has_the_expected_top_level_blocks():
     raw = yaml.safe_load((ABC_DIR / "company.yaml").read_text(encoding="utf-8"))
-    assert list(raw) == ["source"]
+    assert list(raw) == ["source", "adjustments", "windows"]  # P4 added adjustments + windows
 
 
 def test_parse_source_roundtrip():
@@ -33,10 +33,10 @@ def test_parse_source_roundtrip():
 
 
 def test_unknown_top_level_key_rejected_with_clear_message(tmp_path):
-    (tmp_path / "company.yaml").write_text("source: {}\nwindows: {}\n", encoding="utf-8")
+    (tmp_path / "company.yaml").write_text("source: {}\nthresholds: {}\n", encoding="utf-8")
     with pytest.raises(ConfigError) as e:
         load_company(tmp_path)
-    assert "windows" in str(e.value) and "unknown" in str(e.value).lower()
+    assert "thresholds" in str(e.value) and "unknown" in str(e.value).lower()
 
 
 def test_unknown_source_key_rejected_with_clear_message():

@@ -9,7 +9,7 @@ from pathlib import Path
 import yaml
 
 SECTION_KINDS = ("income", "cogs", "opex", "other_income", "other_expense")
-TOP_LEVEL_KEYS = {"source", "categories_extra"}
+TOP_LEVEL_KEYS = {"source", "categories_extra", "adjustments", "windows"}
 
 
 class ConfigError(Exception):
@@ -65,10 +65,26 @@ class CategoriesExtra:
 
 
 @dataclass(frozen=True)
+class Adjustment:
+    """A reported (account, period) amount that the adjusted basis sets to zero."""
+    account: str
+    periods: tuple
+    reason: str
+
+
+@dataclass(frozen=True)
+class WindowsCfg:
+    lengths: tuple = (12,)
+    end: str = "latest"    # "latest" or YYYY-MM
+
+
+@dataclass(frozen=True)
 class Company:
     company_id: str
     source: SourceConfig
     categories_extra: CategoriesExtra = CategoriesExtra()
+    adjustments: tuple = ()
+    windows: WindowsCfg = WindowsCfg()
 
 
 def _mapping(v, where):
@@ -192,6 +208,56 @@ def parse_categories_extra(raw):
     return CategoriesExtra(**vals)
 
 
+def _period(v, where):
+    from .model import Period
+
+    if not isinstance(v, str):
+        raise ConfigError(f"{where}: expected a period like '2025-12', got {v!r}")
+    try:
+        Period.parse(v)
+    except ValueError as e:
+        raise ConfigError(f"{where}: {e}") from e
+    return v
+
+
+def parse_adjustments(raw):
+    w = "adjustments"
+    if not isinstance(raw, list):
+        raise ConfigError(f"{w}: expected a list")
+    out, seen = [], set()
+    for i, item in enumerate(raw):
+        where = f"{w}[{i}]"
+        item = _mapping(item, where)
+        _check_keys(item, {"account", "periods", "reason"}, {"account", "periods", "reason"}, where)
+        periods = item["periods"]
+        if not isinstance(periods, list) or not periods:
+            raise ConfigError(f"{where}.periods: expected a non-empty list of periods")
+        ps = tuple(_period(p, f"{where}.periods") for p in periods)
+        account = _str(item, "account", where)
+        for p in ps:
+            if (account, p) in seen:
+                raise ConfigError(f"{where}: adjustment for ({account!r}, {p}) is declared more than once")
+            seen.add((account, p))
+        out.append(Adjustment(account, ps, _str(item, "reason", where)))
+    return tuple(out)
+
+
+def parse_windows(raw):
+    w = "windows"
+    raw = _mapping(raw, w)
+    _check_keys(raw, {"lengths", "end"}, set(), w)
+    lengths = raw.get("lengths", [12])
+    if (not isinstance(lengths, list) or not lengths or
+            not all(isinstance(n, int) and not isinstance(n, bool) and n >= 1 for n in lengths)):
+        raise ConfigError(f"{w}.lengths: expected a non-empty list of positive integers")
+    if len(set(lengths)) != len(lengths):
+        raise ConfigError(f"{w}.lengths: duplicate lengths")
+    end = raw.get("end", "latest")
+    if end != "latest":
+        _period(end, f"{w}.end")
+    return WindowsCfg(tuple(lengths), end)
+
+
 def load_company(company_dir, base_dir=None):
     """company_id = folder name. Relative source paths resolve against base_dir
     (default: the folder that contains `companies/`)."""
@@ -207,4 +273,6 @@ def load_company(company_dir, base_dir=None):
     _check_keys(raw, TOP_LEVEL_KEYS, {"source"}, "company.yaml")
     base = Path(base_dir) if base_dir else company_dir.parent.parent
     extra = parse_categories_extra(raw["categories_extra"]) if "categories_extra" in raw else CategoriesExtra()
-    return Company(company_dir.name, parse_source(raw["source"], base), extra)
+    adjustments = parse_adjustments(raw["adjustments"]) if "adjustments" in raw else ()
+    windows = parse_windows(raw["windows"]) if "windows" in raw else WindowsCfg()
+    return Company(company_dir.name, parse_source(raw["source"], base), extra, adjustments, windows)

@@ -6,6 +6,7 @@ leaf without touching its control row. Values are chronological
 Control rows are written as literal numbers (openpyxl cannot cache formulas).
 """
 import copy
+from datetime import datetime
 
 import openpyxl
 
@@ -105,7 +106,7 @@ def write(path, rows, order="oldest", periods=PERIODS, header_values=None, extra
     ws.cell(1, 1, "Title that is misleading: month ended Dec 31, 2099")
     ws.cell(HEADER_ROW, 2, "Account")
     ordered = list(periods) if order == "oldest" else list(reversed(periods))
-    heads = header_values or [MONTH.get(p, p) for p in ordered]
+    heads = header_values or [datetime.strptime(p, "%Y-%m").strftime("%b %Y") for p in ordered]
     for j, h in enumerate(heads):
         ws.cell(HEADER_ROW, 3 + j, h)
     for k in range(extra_empty_cols):  # used range wider than the periods
