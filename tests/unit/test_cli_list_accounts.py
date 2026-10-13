@@ -57,6 +57,6 @@ def test_list_accounts_without_company_dir_or_with_bad_dir(tmp_path):
     assert r.returncode == 2 and "company.yaml" in r.stderr                # config error: exit 2
 
 
-def test_other_subcommands_are_still_stubs(tmp_path):
+def test_render_is_no_longer_a_stub(tmp_path):
     r = run("render", "--company-dir", "x", cwd=tmp_path)
-    assert r.returncode != 0 and "not implemented" in r.stderr.lower()
+    assert r.returncode == 2 and "not implemented" not in r.stderr.lower() and "no run folder" in r.stderr.lower()

@@ -3,14 +3,15 @@
   run            load -> map -> reconcile -> metrics -> flags -> digest.json, metrics.json, trend_pack.xlsx
   check          load + map + reconcile only; prints the reconciliation table; writes nothing
   list-accounts  every account with section, path and mapped / unmapped status
-  render         not implemented yet (a later phase)
+  render         check commentary_draft.md against digest.json, then write commentary.md and grounding_report.json
 
 Exit codes (run, check, list-accounts):
   0   success
   2   usage or configuration error: bad or conflicting arguments, unknown company, invalid company.yaml
   3   BLOCKED: the data failed a check (reconciliation, adapter error, unmapped or unapproved mapping).
-      run then writes only blocked_report.json (and unmapped_accounts.yaml when accounts are unmapped)
-  70  command not implemented (render)
+      run then writes only blocked_report.json (and unmapped_accounts.yaml when accounts are unmapped);
+      render refuses a run that was BLOCKED
+  4   GROUNDING_FAILED (render): the draft failed the grounding checks; render writes only grounding_report.json
 
 Outputs go to <out>/<company_id>/<run_id>/ (default <out> = outputs/ beside companies/), never into
 companies/ or the skill folder. Adds its own folder to sys.path so no package install is needed.
@@ -28,20 +29,21 @@ from trend.adapters.base import AdapterError  # noqa: E402
 from trend.config import ConfigError  # noqa: E402
 from trend.mapping import MappingError  # noqa: E402
 from trend.model import MetricsError  # noqa: E402
-from trend.pipeline import (EXIT_BLOCKED, EXIT_NOT_IMPLEMENTED, EXIT_OK, EXIT_USAGE, UsageError,  # noqa: E402
-                            check, format_recon_table, run)
+from trend.pipeline import (EXIT_BLOCKED, EXIT_GROUNDING_FAILED, EXIT_OK, EXIT_USAGE, UsageError,  # noqa: E402
+                            check, default_out_base, format_recon_table, run)
+from trend.writers.render import find_latest_run, render_run  # noqa: E402
 
 EPILOG = """\
 Exit codes:
   0  success
   2  usage or configuration error (bad arguments, unknown company, invalid company.yaml)
-  3  BLOCKED: the data failed a check; run writes only blocked_report.json
-  70 command not implemented (render)
+  3  BLOCKED: the data failed a check; run writes only blocked_report.json (render refuses a BLOCKED run)
+  4  GROUNDING_FAILED: render found the draft ungrounded and wrote only grounding_report.json
 """
 COMMANDS = {
     "run": "compute metrics and flags and write digest.json, metrics.json and trend_pack.xlsx",
     "check": "load and reconcile only; print the reconciliation table",
-    "render": "render the commentary draft into numbers (not implemented yet)",
+    "render": "check commentary_draft.md against digest.json and write commentary.md + grounding_report.json",
     "list-accounts": "list the accounts found in a company's source",
 }
 
@@ -63,6 +65,10 @@ def build_parser():
             sp.add_argument("--as-of", metavar="YYYY-MM", help="ignore every month after this one")
             sp.add_argument("--period", metavar="START:END", help="shorthand for --window <months> --window-end END")
             sp.add_argument("--out", metavar="DIR", help="output base folder (default: outputs/ beside companies/)")
+        if name == "render":
+            sp.add_argument("--run-dir", metavar="DIR", help="run folder holding digest.json (default: the latest run for the company)")
+            sp.add_argument("--draft", metavar="PATH", help="the draft to check (default: commentary_draft.md in the run folder)")
+            sp.add_argument("--out", metavar="DIR", help="output base folder to search for the latest run (default: outputs/ beside companies/)")
     return p
 
 
@@ -104,6 +110,32 @@ def cmd_run(args, company_dir):
     return EXIT_OK
 
 
+def cmd_render(args):
+    if args.run_dir:
+        run_dir = Path(args.run_dir)
+    elif args.company or args.company_dir:
+        company_dir = resolve_company_dir(args)
+        run_dir = find_latest_run(args.out or default_out_base(company_dir), company_dir.name)
+    else:
+        raise UsageError("render needs --run-dir, or --company / --company-dir to find the latest run folder")
+    res = render_run(run_dir, args.draft)
+    if res.status == "BLOCKED":
+        print(f"BLOCKED: {res.message}", file=sys.stderr)
+        return EXIT_BLOCKED
+    if res.status == "GROUNDING_FAILED":
+        for f in res.failures:
+            where = f"line {f.line}" if f.line else "whole draft"
+            print(f"{f.code} {f.name} ({where}): {f.message}  [{f.text}]", file=sys.stderr)
+        print(f"GROUNDING_FAILED: {res.message}", file=sys.stderr)
+        for f in res.files:
+            print(f"wrote {f}")
+        return EXIT_GROUNDING_FAILED
+    print(f"status: OK  (run folder {res.run_dir})")
+    for f in res.files:
+        print(f"wrote {f} ({f.stat().st_size} bytes)")
+    return EXIT_OK
+
+
 def cmd_check(args, company_dir):
     res = check(company_dir)
     if res.recon is None:
@@ -138,10 +170,9 @@ def cmd_list_accounts(args, company_dir):
 
 def main(argv=None):
     args = build_parser().parse_args(argv)
-    if args.command == "render":
-        print("trend_cli.py render: not implemented (a later phase)", file=sys.stderr)
-        return EXIT_NOT_IMPLEMENTED
     try:
+        if args.command == "render":
+            return cmd_render(args)
         company_dir = resolve_company_dir(args)
         return {"run": cmd_run, "check": cmd_check, "list-accounts": cmd_list_accounts}[args.command](args, company_dir)
     except (UsageError, ConfigError, MetricsError) as e:

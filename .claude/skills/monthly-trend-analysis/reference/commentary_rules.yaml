@@ -1,0 +1,55 @@
+# Machine-readable commentary rules, read by trend/grounding.py. All matching is case-insensitive on whole words.
+# Human wording rules belong in commentary_rules.md (P7); this file is only what the checker enforces.
+
+# G3 CAUSAL_CLAIM (PLAN 6.2 rule 5). Causal phrasing is banned outright: this tool describes movements, not causes.
+# There is no hedge exception. Reword as a question for the analyst ("worth confirming what changed in ...").
+causal_phrases:
+  - because
+  - due to
+  - caused by
+  - driven by
+  - as a result of
+  - as a consequence of
+  - attributable to
+  - thanks to
+  - owing to
+  - on account of
+  - resulted from
+  - resulting from
+  - result of
+  - led to
+  - leading to
+  - stems from
+  - stemming from
+  - consequently
+  - therefore
+  - hence
+
+# Shown in every G3 failure and in the grounding report.
+causal_advice: "Reword it as a question for the analyst, for example 'worth confirming what changed in <account>'."
+
+# G4 DIRECTION_MISMATCH (deliberately narrow: one signed token per sentence, see the report note).
+direction_words:
+  up: [increased, increase, increases, rose, rise, rises, rising, grew, grow, grows, growth, higher, up, jumped, climbed, gained, surged]
+  down: [decreased, decrease, decreases, fell, falls, fall, falling, declined, decline, declines, lower, down, dropped, drop, drops, shrank, slipped]
+
+# G8 BANNED_WORD (PLAN 6.2 rule 5, the non-causal ones).
+banned_words: [definitely, clearly, certainly, will, guarantee, guarantees, recommend, recommends, recommended, "should cut"]
+
+# G9 BODY_TOO_LONG (PLAN 6.2 rule 4): words after the banner, up to the Data notes heading. A {{token}} counts as one word.
+max_body_words: 250
+
+# G10 MISSING_SECTION (PLAN 6.2 rule 4): headings, in this order, plus the Headline bullet limit.
+required_sections: [Headline, Revenue, Margins, Operating expenses, Questions for the reviewer, Data notes]
+max_headline_bullets: 3
+data_notes_heading: Data notes
+
+# G5 MISSING_COVERAGE: headline rows whose reported value must be cited.
+coverage_headline_rows: [Revenue, Gross margin, Operating income, Operating margin]
+# G5(c): for every period in adjusted_periods, this row's reported AND adjusted figure must both be cited; and, for every
+# configured window that contains an adjusted period, the same row's reported AND adjusted window figure.
+coverage_adjusted_row: Operating income
+
+# G6 MISSING_DRAFT_BANNER: the first non-empty line starts with this word and says one of these phrases.
+banner_start: DRAFT
+banner_phrases: [not reviewed, analyst review, reviewer]

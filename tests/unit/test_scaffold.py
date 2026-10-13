@@ -22,11 +22,13 @@ def test_cli_help_from_another_working_directory(tmp_path):
         assert cmd in r.stdout
 
 
-def test_cli_stub_subcommand_is_not_implemented(tmp_path):
+def test_render_is_a_real_command_not_a_stub(tmp_path):
+    # P8 replaced the P0 stub: with nothing to render it is a usage error (exit 2), not "not implemented" (70)
     r = subprocess.run([sys.executable, str(CLI), "render", "--company-dir", "x"],
                        cwd=tmp_path, capture_output=True, text=True)
-    assert r.returncode != 0
-    assert "not implemented" in (r.stderr + r.stdout).lower()
+    assert r.returncode == 2
+    assert "not implemented" not in (r.stderr + r.stdout).lower()
+    assert "no run folder" in r.stderr.lower()
 
 
 def test_layout_matches_plan_section_2():

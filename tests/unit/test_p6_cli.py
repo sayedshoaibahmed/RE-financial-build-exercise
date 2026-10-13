@@ -276,7 +276,7 @@ def test_out_dir_inside_the_skill_folder_is_refused(tmp_path):
 def test_exit_codes_are_documented_in_help():
     out = cli("run", "--help").stdout + cli("--help").stdout
     assert "Exit codes" in out
-    for line in ("0  ", "2  ", "3  "):
+    for line in ("0  ", "2  ", "3  ", "4  "):
         assert line in out
     assert "BLOCKED" in out and "usage" in out.lower() and "config" in out.lower()
     assert "Exit codes" in CLI.read_text(encoding="utf-8")
@@ -313,9 +313,9 @@ def test_check_reports_unmapped_accounts_as_blocked(tmp_path):
 
 # ---------------------------------------------------------------- the commands that are not part of P6
 
-def test_render_is_still_a_stub():
-    r = cli("render", "--company", "abc_inc")
-    assert r.returncode == 70 and "not implemented" in r.stderr.lower()
+def test_render_without_a_draft_is_a_usage_error_not_a_stub(tmp_path):
+    r = cli("render", "--company", "abc_inc", "--out", tmp_path)          # an empty output base: nothing to render
+    assert r.returncode == 2 and "not implemented" not in r.stderr.lower() and "no run folder" in r.stderr.lower()
 
 
 def test_list_accounts_still_works_with_company_id():
