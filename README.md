@@ -103,7 +103,7 @@ Optional extras: `python evals\run_mutants.py` (mutation testing, about 5 minute
 | Mutation testing: 13 mutants | TESTED (last run recorded in `evals\README.md`) | 12 killed, 1 accepted survivor (an equivalent mutant) |
 | Connector offline tests (mocked HTTP, from the copy in `connector\`) | TESTED | `121 passed in 3.31s` using `connector\.venv` |
 | Connector against a live QuickBooks Sandbox | Done by the author on 2026-10-12 through Claude Desktop; reviewers have not repeated it | see `connector\README.md` |
-| Balance sheet as-of values from the connector vs the QuickBooks screen | UNVERIFIED | see `connector\README.md` |
+| Balance sheet totals from the connector vs the QuickBooks screen | TESTED (one date) | 2026-10-13, accrual, sandbox company: Total Assets 23,436.29, Total Liabilities 31,131.33, Total Equity -7,695.04 matched the QuickBooks Balance Sheet screen; checked by hand through Claude Desktop, not repeated by reviewers |
 
 Why two pytest runs: the root `pytest.ini` limits collection to `tests\` and skips `connector`
 and `evals`, so the root count (762) and the connector count (121) never overlap.
