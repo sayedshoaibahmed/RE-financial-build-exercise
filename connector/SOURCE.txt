@@ -1,0 +1,4 @@
+Source repo: qbo-mcp (C:\Users\shoai\projects\qbo-mcp, branch master)
+Commit: 0f46bc6
+Date imported: 2026-10-13 (git archive of committed HEAD)
+Credentials are not included; reviewers supply their own Intuit keys (see connector\.env.example).

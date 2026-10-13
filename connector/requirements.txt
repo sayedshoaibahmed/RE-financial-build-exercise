@@ -1,0 +1,10 @@
+# Runtime
+mcp==2.3.0
+python-dotenv==1.1.0
+httpx==0.28.1
+filelock==3.18.0
+
+# Dev / test only
+pytest==8.3.5
+pytest-asyncio==0.25.3
+respx==0.22.0

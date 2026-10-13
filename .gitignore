@@ -11,3 +11,13 @@ __pycache__/
 dist/
 evals/results/latest.json
 evals/results/mutants_latest.json
+
+# connector (Task 1) local-only files
+connector/.env
+connector/.venv/
+**/.env
+!.env.example
+!**/.env.example
+**/tokens.json
+**/*.token
+*.egg-info/
