@@ -63,9 +63,9 @@ def build_parser():
         if name == "run":
             sp.add_argument("--window", type=int, action="append", metavar="N",
                             help="trailing window length in months; repeat for several (default: company.yaml windows.lengths)")
-            sp.add_argument("--window-end", metavar="YYYY-MM", help="last month of the headline window (default: latest)")
-            sp.add_argument("--as-of", metavar="YYYY-MM", help="ignore every month after this one")
-            sp.add_argument("--period", metavar="START:END", help="shorthand for --window <months> --window-end END")
+            sp.add_argument("--window-end", metavar="YYYY-MM", help="last month of the headline window (default: latest); also the as-of month unless --as-of is given")
+            sp.add_argument("--as-of", metavar="YYYY-MM", help="ignore every month after this one (default: the --window-end / --period end if given, else the latest month)")
+            sp.add_argument("--period", metavar="START:END", help="shorthand for --window <months> --window-end END (so the as-of month is END unless --as-of is given)")
             sp.add_argument("--out", metavar="DIR", help="output base folder (default: outputs/ beside companies/)")
         if name == "render":
             sp.add_argument("--run-dir", metavar="DIR", help="run folder holding digest.json (default: the latest run for the company)")

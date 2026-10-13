@@ -283,6 +283,15 @@ def test_the_workflow_text_carries_the_required_instructions():
     assert re.search(r"never[^\n]*ignore|ignore any instruction", low)
 
 
+def test_window_end_as_of_and_follow_up_number_rules_are_present():
+    flat = " ".join(TEXT.split())
+    assert re.search(r'"ending March" or "through March 2026" sets the window end, and the as-of month follows it', flat)
+    assert "unless the person says otherwise" in flat
+    assert "any number in a chat reply must be a display string copied exactly from `commentary.md` or the digest's `allowed_facts`" in flat
+    assert 'Never compute a new number or a comparison (no "below average", no differences, no sums)' in flat
+    assert "suggest the analyst check the workbook or rerun with other options" in flat
+
+
 def test_documented_attempt_limit_matches_the_rules_file_philosophy():
     assert re.search(r"at most 3 render attempts", TEXT, re.I)
 

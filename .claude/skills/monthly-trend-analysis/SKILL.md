@@ -46,6 +46,7 @@ Identify the company (a folder under `companies/`) and what is asked. Map phrase
 - "trailing 6 months", "last 6 months": `--window 6` (repeat `--window` for several lengths)
 - "ending March", "through March 2026": `--window-end 2026-03`
 - "as of April": `--as-of 2026-04`
+- "ending March" or "through March 2026" sets the window end, and the as-of month follows it (March) unless the person says otherwise; add `--as-of` only when they ask for a different month
 - "January to March 2026": `--period 2026-01:2026-03`
 - nothing stated: use the defaults (12-month window ending at the latest month)
 
@@ -74,6 +75,8 @@ Run `render --company <id>`. On exit 4 read `grounding_report.json` (each failur
 
 ### 7. Answer
 Say where `commentary.md` and the other files are. Give a short summary using the display strings in `commentary.md`. State that this is a DRAFT for analyst review. Mention the data notes that matter: the suppressed negatives, any WARNING line, and that adjusted items are unconfirmed.
+
+For follow-up questions: any number in a chat reply must be a display string copied exactly from `commentary.md` or the digest's `allowed_facts`. Never compute a new number or a comparison (no "below average", no differences, no sums). If the digest does not contain what is asked, say so and suggest the analyst check the workbook or rerun with other options.
 
 ## Onboarding a new company
 A human creates `companies/<id>/company.yaml` from `templates/company.template.yaml`; you never do. Only the Excel P&L layout (`type: excel_pl`) is supported: for any other source (QuickBooks, a PDF, another layout) say it is not supported yet and stop. Then run `list-accounts --company <id>` and write `companies/<id>/mapping.proposed.yaml` with proposals only, following `reference/mapping_workflow.md` and `reference/categories.md`. Tell the person a human must review it and create `mapping.yaml` with `approved_by` and `approved_on`; the pipeline never reads the proposal. The same applies when a run is BLOCKED with UNMAPPED_ACCOUNT: use `unmapped_accounts.yaml` from the run folder.

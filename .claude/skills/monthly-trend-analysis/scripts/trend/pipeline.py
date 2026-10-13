@@ -162,6 +162,8 @@ def _blocked(company, run_dir, exc, recon=None):
 
 
 def run(company_dir, *, as_of=None, window_lengths=None, window_end=None, period=None, out_base=None):
+    """as_of defaults to the window end when window_end (or period) is given, so the monthly figures, MoM and flags
+    are for the same month as the window; an explicit as_of wins. With neither, the latest month is used."""
     company_dir = Path(company_dir).resolve()
     lengths = tuple(window_lengths) if window_lengths else None
     if period is not None:
@@ -170,6 +172,8 @@ def run(company_dir, *, as_of=None, window_lengths=None, window_end=None, period
         n, window_end = window_from_period_range(period)
         lengths = (n,)
     _validate_args(as_of, lengths, window_end)
+    if as_of is None and window_end not in (None, "latest"):
+        as_of = window_end              # an explicit window end sets the as-of month too; an explicit as_of always wins
     company = load_company(company_dir)                                    # ConfigError -> exit 2
     base = _check_out(out_base if out_base else default_out_base(company_dir), company_dir)
     root = base / company.company_id

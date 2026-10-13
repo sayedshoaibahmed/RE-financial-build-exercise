@@ -117,8 +117,9 @@ def test_blocked_flag_free_success_run_has_no_blocked_report(abc_runs):
 def test_cli_window_options_change_the_run_id_and_the_windows(tmp_path):
     r = cli("run", "--company", "abc_inc", "--window", "6", "--window-end", "2026-03", "--out", tmp_path)
     assert r.returncode == 0, r.stderr
-    d = tmp_path / "abc_inc" / "2026-06_w6-2026-03"
+    d = tmp_path / "abc_inc" / "2026-03_w6-2026-03"                      # as-of follows the window end
     digest = json.loads((d / "digest.json").read_text(encoding="utf-8"))
+    assert digest["as_of"] == "2026-03"
     (w,) = digest["windows"]
     f = digest["allowed_facts"]
     rows = {x["label"]: x for x in w["rows"]}
@@ -137,6 +138,57 @@ def test_cli_period_sugar_and_as_of(tmp_path):
     assert not [k for k in metrics["facts"] if k.endswith("2026-05") or k.endswith("2026-06")]     # no lookahead
 
 
+def _digest(d):
+    return json.loads((d / "digest.json").read_text(encoding="utf-8"))
+
+
+def test_window_end_alone_sets_the_as_of_month(tmp_path):
+    r = cli("run", "--company", "abc_inc", "--window", "6", "--window-end", "2026-03", "--out", tmp_path)
+    assert r.returncode == 0, r.stderr
+    d = tmp_path / "abc_inc" / "2026-03_w6-2026-03"
+    dg = _digest(d)
+    assert dg["as_of"] == "2026-03" and dg["window_end"] == "2026-03"
+    metrics = json.loads((d / "metrics.json").read_text(encoding="utf-8"))
+    assert not [k for k in metrics["facts"] if k.endswith("2026-04") or k.endswith("2026-05") or k.endswith("2026-06")]
+    f = dg["allowed_facts"]
+    (w,) = dg["windows"]
+    rows = {x["label"]: x for x in w["rows"]}
+    assert f[rows["Revenue"]["rep"]["value"]] == "1,148,039.20"
+    assert f[rows["Operating income"]["rep"]["value"]] == "-1,095,637.76"
+    assert f[rows["Operating income"]["adj"]["value"]] == "-2,005,407.07"
+
+
+def test_period_sets_the_as_of_month_to_its_end(tmp_path):
+    r = cli("run", "--company", "abc_inc", "--period", "2025-10:2026-03", "--out", tmp_path)
+    assert r.returncode == 0, r.stderr
+    assert _digest(tmp_path / "abc_inc" / "2026-03_w6-2026-03")["as_of"] == "2026-03"
+
+
+def test_explicit_as_of_wins_over_the_window_end(tmp_path):
+    r = cli("run", "--company", "abc_inc", "--window", "6", "--window-end", "2026-03", "--as-of", "2026-06", "--out", tmp_path)
+    assert r.returncode == 0, r.stderr
+    dg = _digest(tmp_path / "abc_inc" / "2026-06_w6-2026-03")
+    assert dg["as_of"] == "2026-06" and dg["window_end"] == "2026-03"
+
+
+def test_several_window_lengths_with_one_window_end_share_one_as_of(tmp_path):
+    r = cli("run", "--company", "abc_inc", "--window", "3", "--window", "6", "--window-end", "2026-03", "--out", tmp_path)
+    assert r.returncode == 0, r.stderr
+    assert _digest(tmp_path / "abc_inc" / "2026-03_w3+6-2026-03")["as_of"] == "2026-03"
+
+
+def test_window_end_later_than_the_data_still_errors(tmp_path):
+    r = cli("run", "--company", "abc_inc", "--window-end", "2030-01", "--out", tmp_path)
+    assert r.returncode == EXIT_USAGE and "WINDOW_END_AFTER_DATA" in r.stderr
+    assert not (tmp_path / "abc_inc").exists()
+
+
+def test_run_help_documents_the_as_of_default():
+    flat = " ".join(cli("run", "--help").stdout.split())
+    assert "also the as-of month unless --as-of is given" in flat
+    assert "default: the --window-end / --period end if given" in flat
+
+
 # ---------------------------------------------------------------- the run folder name and library-level runs
 
 def good(tmp_path, n=6, **kw):
@@ -153,7 +205,9 @@ def test_run_id_and_default_output_base(tmp_path):
     assert default_out_base(cdir) == tmp_path / "outputs"            # PLAN: outputs/<company_id>/<run_id>/
     assert default_out_base(ABC_DIR) == ROOT / "outputs"
     res2 = run_pipeline(cdir, out_base=tmp_path / "o", window_lengths=(3, 6), window_end="2025-05")
-    assert res2.out_dir.name == "2025-06_w3+6-2025-05"
+    assert res2.out_dir.name == "2025-05_w3+6-2025-05"
+    res3 = run_pipeline(cdir, out_base=tmp_path / "o", window_lengths=(3, 6), window_end="2025-05", as_of="2025-06")
+    assert res3.out_dir.name == "2025-06_w3+6-2025-05"                      # an explicit as-of wins
 
 
 # ---------------------------------------------------------------- BLOCKED: only the blocked report is written
