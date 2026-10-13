@@ -1,12 +1,13 @@
 # Scans a folder for likely secrets. Exit 0 = clean, 1 = findings.
 # Never prints the matched text; only file, line number and rule name.
+# Allowlist (narrow): the name .env.example is allowed; credential-assign is skipped only under connector\tests\.
 # Files with forbidden names (.env, tokens*, keys) are flagged by NAME and never opened.
 param([string]$Path = (Split-Path -Parent $PSScriptRoot))
 
 $ErrorActionPreference = 'Stop'
 $skipDirs = '\\(\.git|\.venv|outputs|__pycache__|\.pytest_cache|dist)\\'
 $textExt  = '.py','.ps1','.md','.txt','.yaml','.yml','.json','.ini','.cfg','.toml','.csv','.sh','.js','.html'
-$badNames = '^\.env($|\.)', '^tokens', '\.pem$', '\.key$', '^credentials'
+$badNames = '^\.env($|\.(?!example$))', '^tokens', '\.pem$', '\.key$', '^credentials'
 $rules = [ordered]@{
     'private-key'      = '-----BEGIN [A-Z ]*PRIVATE KEY-----'
     'anthropic-key'    = 'sk-ant-[A-Za-z0-9_-]{20,}'
@@ -25,9 +26,11 @@ Get-ChildItem -LiteralPath $root -Recurse -File -Force | ForEach-Object {
     }
     if ($textExt -notcontains $_.Extension.ToLower()) { return }
     $n = 0
+    $inTests = $rel -like 'connector\tests\*'
     foreach ($line in [System.IO.File]::ReadLines($_.FullName)) {
         $n++
         foreach ($k in $rules.Keys) {
+            if ($k -eq 'credential-assign' -and $inTests) { continue }
             if ($line -match $rules[$k]) { Write-Output "$k  ${rel}:$n"; $script:findings++ }
         }
     }

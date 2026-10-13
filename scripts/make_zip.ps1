@@ -17,5 +17,7 @@ $dir = Split-Path -Parent $Out
 if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
 git -C $Repo archive --format=zip -o $Out HEAD
 if ($LASTEXITCODE -ne 0) { Write-Output "make_zip: git archive failed"; exit 1 }
+& (Join-Path $PSScriptRoot 'check_zip.ps1') -Zip $Out
+if ($LASTEXITCODE -ne 0) { Remove-Item -LiteralPath $Out -Force; Write-Output "make_zip: zip failed the entry check and was deleted"; exit 1 }
 Write-Output "make_zip: wrote $Out"
 exit 0

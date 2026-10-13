@@ -39,7 +39,7 @@ The two parts do not share an environment. Use the right one for each.
 
 | Environment | Used for | Python | Install from |
 |---|---|---|---|
-| `.venv` (repo root) | the skill, the evals, the root tests | 3.12 here (3.11 also works) | `requirements-dev.txt` |
+| `.venv` (repo root) | the skill, the evals, the root tests | 3.12 here (3.11 is UNTESTED) | `requirements-dev.txt` |
 | `connector\.venv` | the QuickBooks server and its tests | 3.11 or newer | `connector\pyproject.toml` and `connector\requirements.txt` |
 
 Both `.venv` folders are gitignored.
@@ -73,6 +73,8 @@ Run the root tests, then the evals:
 .\.venv\Scripts\python.exe -m pytest -q
 .\.venv\Scripts\python.exe evals\run_evals.py
 ```
+
+The eval run takes about 1 to 2 minutes (58 s to 96 s measured on this machine).
 
 Set up and test the connector (separate environment, no credentials needed for the tests):
 
@@ -125,7 +127,7 @@ refuses to start unless the environment is `sandbox`. It exposes four read-only 
 
 ## Known limits
 
-- Permissions are a second layer, not a sandbox. `.claude\settings.json` denies some edits, but it is not a security boundary. (UNTESTED as a boundary.)
+- Permissions are a second layer, not a sandbox. The deny rules in `.claude\settings.json` for Read, Edit and Write were TESTED live in Claude Code sessions. Deny rules do not bind subprocesses: a python or shell call can still change files. So this is a guard against careless edits, not a sandbox. (UNTESTED as a security boundary.)
 - The manifest guards careless edits only. It does not stop a deliberate change. (TESTED for careless edits; UNTESTED against deliberate ones.)
 - Chat answers are guided by an instruction in `SKILL.md`. Code does not check them. Only the written commentary is checked by the grounding rules.
 - The QuickBooks adapter for the trend skill is not built. The skill reads Excel only, so eval case G10 (QBO parity) is not built either. The connector and the skill are not wired together.
