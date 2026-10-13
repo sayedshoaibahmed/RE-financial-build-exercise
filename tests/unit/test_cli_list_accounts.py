@@ -40,7 +40,7 @@ def test_list_accounts_reports_an_unapproved_mapping_as_an_error(tmp_path):
         return es
     cdir = co.write_company(tmp_path, mapping=mk)
     r = run("list-accounts", "--company-dir", str(cdir), cwd=tmp_path)
-    assert r.returncode == 1 and "UNAPPROVED_MAPPING" in r.stderr
+    assert r.returncode == 3 and "UNAPPROVED_MAPPING" in r.stderr          # BLOCKED-class error: exit 3
 
 
 def test_list_accounts_reports_adapter_errors(tmp_path):
@@ -48,15 +48,15 @@ def test_list_accounts_reports_adapter_errors(tmp_path):
     rows.insert(2, [None, "Total Widgets", [1, 1, 1]])
     cdir = co.write_company(tmp_path, rows=rows)
     r = run("list-accounts", "--company-dir", str(cdir), cwd=tmp_path)
-    assert r.returncode == 1 and "UNDECLARED_TOTAL" in r.stderr
+    assert r.returncode == 3 and "UNDECLARED_TOTAL" in r.stderr
 
 
 def test_list_accounts_without_company_dir_or_with_bad_dir(tmp_path):
     assert run("list-accounts", cwd=tmp_path).returncode == 2  # argparse: required
     r = run("list-accounts", "--company-dir", str(tmp_path / "nope"), cwd=tmp_path)
-    assert r.returncode == 1 and "company.yaml" in r.stderr
+    assert r.returncode == 2 and "company.yaml" in r.stderr                # config error: exit 2
 
 
 def test_other_subcommands_are_still_stubs(tmp_path):
-    r = run("run", "--company-dir", "x", cwd=tmp_path)
+    r = run("render", "--company-dir", "x", cwd=tmp_path)
     assert r.returncode != 0 and "not implemented" in r.stderr.lower()

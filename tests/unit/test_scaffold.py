@@ -23,7 +23,7 @@ def test_cli_help_from_another_working_directory(tmp_path):
 
 
 def test_cli_stub_subcommand_is_not_implemented(tmp_path):
-    r = subprocess.run([sys.executable, str(CLI), "run", "--company-dir", "x"],
+    r = subprocess.run([sys.executable, str(CLI), "render", "--company-dir", "x"],
                        cwd=tmp_path, capture_output=True, text=True)
     assert r.returncode != 0
     assert "not implemented" in (r.stderr + r.stdout).lower()

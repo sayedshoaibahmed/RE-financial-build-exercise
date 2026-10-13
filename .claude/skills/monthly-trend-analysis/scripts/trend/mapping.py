@@ -159,7 +159,7 @@ def _unmapped_doc(records, missing):
     return rows
 
 
-def map_records(records, mapping, company, company_dir, out_dir=None):
+def map_records(records, mapping, company, company_dir, out_dir=None, write=True):
     """-> list[MappedRecord], or raises MappingError (AMBIGUOUS_ACCOUNT, UNMAPPED_ACCOUNT, INVALID_MAPPING)."""
     accts = _accounts(records)
     paths = {}
@@ -176,11 +176,12 @@ def map_records(records, mapping, company, company_dir, out_dir=None):
     if missing:
         out = Path(out_dir) if out_dir else (Path(company_dir).resolve().parent.parent / "outputs"
                                              / company.company_id / "unmapped")
-        out.mkdir(parents=True, exist_ok=True)
         doc = _unmapped_doc(records, missing)
-        (out / "unmapped_accounts.yaml").write_text(
-            "# Accounts with no entry in mapping.yaml. A human must approve a mapping for each.\n"
-            + yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")
+        if write:                      # write=False (the `check` command) is a dry run: nothing touches the disk
+            out.mkdir(parents=True, exist_ok=True)
+            (out / "unmapped_accounts.yaml").write_text(
+                "# Accounts with no entry in mapping.yaml. A human must approve a mapping for each.\n"
+                + yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")
         names = ", ".join(repr(a) for a, _, _ in missing[:10]) + (" ..." if len(missing) > 10 else "")
         raise MappingError("UNMAPPED_ACCOUNT", f"{len(missing)} account(s) have no entry in mapping.yaml: "
                            f"{names}. See {out / 'unmapped_accounts.yaml'}", unmapped=doc)

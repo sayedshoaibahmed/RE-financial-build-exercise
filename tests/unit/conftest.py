@@ -24,3 +24,15 @@ def abc():
     recon = reconcile(records, controls, company.source, mapped=mapped)
     return SimpleNamespace(company=company, records=records, controls=controls, mapping=mapping,
                            mapped=mapped, recon=recon, o=oracle.scan(), dir=ABC_DIR)
+
+
+@pytest.fixture(scope="session")
+def abc_metrics(abc):
+    from trend.metrics import compute_metrics
+    return compute_metrics(abc.mapped, abc.recon, abc.company)
+
+
+@pytest.fixture(scope="session")
+def abc_flagset(abc, abc_metrics):
+    from trend.flags import compute_flags
+    return compute_flags(abc.mapped, abc.recon, abc_metrics, abc.company)
