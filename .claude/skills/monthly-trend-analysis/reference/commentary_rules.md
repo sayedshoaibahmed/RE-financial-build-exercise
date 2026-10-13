@@ -53,4 +53,16 @@ Fix them all, then render again. At most 3 render attempts in total.
 | `G9` | BODY_TOO_LONG | Cut the body to 250 words; combine bullets, drop optional detail. |
 | `G10` | MISSING_SECTION | Add the missing heading, or cut the Headline to 3 bullets. |
 
+## Digest integrity (also exit 4)
+`run` writes `run_manifest.json` next to the digest (the SHA-256 of `digest.json` and `metrics.json`, and the run id).
+`render` checks the digest against it before it trusts anything in it. These failures are not about the draft, so
+rewriting the draft cannot fix them:
+
+| Code | When | What to do |
+|---|---|---|
+| `DIGEST_TAMPERED` | `digest.json` differs from what `run` wrote, or the manifest belongs to another run folder | Stop. Tell the user; they run `run` again. Never edit the digest. |
+| `DIGEST_UNVERIFIED` | `run_manifest.json` is missing or unreadable | Stop. Tell the user; they run `run` again. |
+
+Only `grounding_report.json` is written and any old `commentary.md` is deleted.
+
 Never edit the digest, the rules file or the checker to get a draft through.

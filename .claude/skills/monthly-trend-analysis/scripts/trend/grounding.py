@@ -64,7 +64,7 @@ class Failure:
 
     @property
     def name(self):
-        return CHECKS[self.code][0]
+        return CHECKS[self.code][0] if self.code in CHECKS else self.code
 
     def to_dict(self):
         return {"code": self.code, "name": self.name, "message": self.message, "line": self.line, "text": self.text}

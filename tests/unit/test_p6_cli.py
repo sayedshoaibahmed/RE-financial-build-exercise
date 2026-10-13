@@ -53,7 +53,7 @@ def abc_runs(tmp_path_factory):
 def test_cli_end_to_end_on_the_real_abc_workbook(abc_runs):
     (p1, p2), (d1, d2), *_ = abc_runs
     assert p1.returncode == EXIT_OK == p2.returncode, p1.stderr
-    assert sorted(f.name for f in d1.iterdir()) == ["digest.json", "metrics.json", "trend_pack.xlsx"]
+    assert sorted(f.name for f in d1.iterdir()) == ["digest.json", "metrics.json", "run_manifest.json", "trend_pack.xlsx"]
     for name in ("digest.json", "metrics.json", "trend_pack.xlsx"):
         assert name in p1.stdout and (d1 / name).stat().st_size > 1000
     assert "OK" in p1.stdout
@@ -149,7 +149,7 @@ def test_run_id_and_default_output_base(tmp_path):
     res = run_pipeline(cdir, out_base=tmp_path / "o")
     assert res.status == "OK" and res.exit_code == EXIT_OK
     assert res.out_dir == tmp_path / "o" / "mini" / "2025-06_w12-2025-06"
-    assert sorted(p.name for p in res.files) == ["digest.json", "metrics.json", "trend_pack.xlsx"]
+    assert sorted(p.name for p in res.files) == ["digest.json", "metrics.json", "run_manifest.json", "trend_pack.xlsx"]
     assert default_out_base(cdir) == tmp_path / "outputs"            # PLAN: outputs/<company_id>/<run_id>/
     assert default_out_base(ABC_DIR) == ROOT / "outputs"
     res2 = run_pipeline(cdir, out_base=tmp_path / "o", window_lengths=(3, 6), window_end="2025-05")
@@ -187,7 +187,7 @@ def test_blocked_run_removes_stale_outputs_of_the_same_run_folder(tmp_path):
     cdir = blocked(tmp_path)
     run_dir = tmp_path / "o" / "mini" / "latest_w12-latest"
     run_dir.mkdir(parents=True)
-    for n in ("metrics.json", "digest.json", "trend_pack.xlsx"):
+    for n in ("metrics.json", "digest.json", "trend_pack.xlsx", "run_manifest.json"):
         (run_dir / n).write_text("stale")
     run_pipeline(cdir, out_base=tmp_path / "o")
     assert sorted(p.name for p in run_dir.iterdir()) == ["blocked_report.json"]

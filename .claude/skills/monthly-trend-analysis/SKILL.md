@@ -37,7 +37,7 @@ python "${CLAUDE_SKILL_DIR}/scripts/ensure_python.py" --which
 | 0 | OK | continue |
 | 2 | Usage or configuration error | report the message; do not guess |
 | 3 | BLOCKED: the data failed a check | stop and report it (step 2) |
-| 4 | GROUNDING_FAILED: the draft failed the checks | read `grounding_report.json`, fix the draft, render again |
+| 4 | GROUNDING_FAILED: the draft failed the checks, or the digest failed its integrity check (`DIGEST_TAMPERED`, `DIGEST_UNVERIFIED`) | read `grounding_report.json`; fix the draft and render again. For a `DIGEST_*` code do NOT retry: tell the user to run `run` again |
 | 5 | No usable Python (launcher only) | show the install command it printed, then stop |
 
 ## Workflow

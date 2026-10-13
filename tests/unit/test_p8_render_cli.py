@@ -10,6 +10,7 @@ import pytest
 
 from trend.digest import build_digest
 from trend.grounding import tokens_in
+from trend.manifest import MANIFEST_NAME, build_manifest, manifest_text
 from trend.writers.json_out import dumps
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -32,10 +33,12 @@ def digest_text(abc, abc_metrics, abc_flagset):
     return dumps(build_digest(abc.company, abc_metrics, abc_flagset, abc.mapped, META))
 
 
-def make_run(base, digest_text, draft=GOOD, name=RUN, company="abc_inc", with_draft=True):
+def make_run(base, digest_text, draft=GOOD, name=RUN, company="abc_inc", with_draft=True, manifest=True):
     d = Path(base) / company / name
     d.mkdir(parents=True)
     (d / "digest.json").write_text(digest_text, encoding="utf-8")
+    if manifest:                                                  # what `run` writes (metrics.json is not needed by render)
+        (d / MANIFEST_NAME).write_text(manifest_text(build_manifest(name, (d / "digest.json").read_bytes(), b"{}")), encoding="utf-8")
     if with_draft:
         (d / "commentary_draft.md").write_text(draft, encoding="utf-8")
     return d
@@ -51,7 +54,7 @@ def test_render_ok_writes_commentary_and_the_report(tmp_path, digest_text):
     run = make_run(tmp_path, digest_text)
     r = cli("render", "--run-dir", run)
     assert r.returncode == 0, r.stderr
-    assert files(run) == ["commentary.md", "commentary_draft.md", "digest.json", "grounding_report.json"]
+    assert files(run) == ["commentary.md", "commentary_draft.md", "digest.json", "grounding_report.json", "run_manifest.json"]
     assert "status: OK" in r.stdout and "commentary.md" in r.stdout and "grounding_report.json" in r.stdout
 
 
@@ -120,7 +123,7 @@ def test_failed_render_exits_4_and_writes_only_the_report(tmp_path, digest_text)
     run = make_run(tmp_path, digest_text, draft=BAD)
     r = cli("render", "--run-dir", run)
     assert r.returncode == 4
-    assert files(run) == ["commentary_draft.md", "digest.json", "grounding_report.json"]
+    assert files(run) == ["commentary_draft.md", "digest.json", "grounding_report.json", "run_manifest.json"]
     rep = json.loads((run / "grounding_report.json").read_text(encoding="utf-8"))
     assert rep["status"] == "GROUNDING_FAILED"
     assert sorted({f["code"] for f in rep["failures"]}) == ["G1", "G2", "G3"]        # all of them at once
@@ -138,7 +141,7 @@ def test_a_failed_render_removes_a_stale_commentary_from_an_earlier_run(tmp_path
     (run / "commentary_draft.md").write_text(BAD, encoding="utf-8")
     assert cli("render", "--run-dir", run).returncode == 4
     assert not (run / "commentary.md").exists()
-    assert files(run) == ["commentary_draft.md", "digest.json", "grounding_report.json"]
+    assert files(run) == ["commentary_draft.md", "digest.json", "grounding_report.json", "run_manifest.json"]
     assert json.loads((run / "grounding_report.json").read_text())["status"] == "GROUNDING_FAILED"
     (run / "commentary_draft.md").write_text(GOOD, encoding="utf-8")                  # and a fixed draft brings it back
     assert cli("render", "--run-dir", run).returncode == 0 and (run / "commentary.md").exists()
@@ -159,7 +162,7 @@ def test_missing_draft_exits_2_and_writes_nothing(tmp_path, digest_text):
     run = make_run(tmp_path, digest_text, with_draft=False)
     r = cli("render", "--run-dir", run)
     assert r.returncode == 2 and "commentary_draft.md" in r.stderr
-    assert files(run) == ["digest.json"]
+    assert files(run) == ["digest.json", "run_manifest.json"]
 
 
 def test_missing_digest_or_run_folder_exits_2(tmp_path):
@@ -175,7 +178,7 @@ def test_missing_digest_or_run_folder_exits_2(tmp_path):
 def test_unreadable_digest_or_oversized_draft_exits_2(tmp_path, digest_text):
     run = make_run(tmp_path, "{not json", draft=GOOD)
     r = cli("render", "--run-dir", run)
-    assert r.returncode == 2 and "digest.json" in r.stderr and files(run) == ["commentary_draft.md", "digest.json"]
+    assert r.returncode == 2 and "digest.json" in r.stderr and files(run) == ["commentary_draft.md", "digest.json", "run_manifest.json"]
     run2 = make_run(tmp_path / "big", digest_text, draft=GOOD + "x" * 600_000)
     assert cli("render", "--run-dir", run2).returncode == 2 and "grounding_report.json" not in files(run2)
     run3 = make_run(tmp_path / "nodigestkey", json.dumps({"status": "OK"}), draft=GOOD)
@@ -275,3 +278,116 @@ def test_good_draft_renders_against_the_digest_a_real_cli_run_wrote(real_run):
     assert {n: sha(real_run / n) for n in before} == before          # the workbook (and its Commentary sheet) are left alone
     assert "195,898.16" in (real_run / "commentary.md").read_text(encoding="utf-8")
     assert json.loads((real_run / "grounding_report.json").read_text())["status"] == "OK"
+
+
+# ---------------------------------------------------------------- P7c: digest integrity (run_manifest.json)
+
+def _report(run):
+    return json.loads((run / "grounding_report.json").read_text(encoding="utf-8"))
+
+
+def _fresh_run(tmp_path_factory, tag):
+    base = tmp_path_factory.mktemp(tag)
+    r = cli("run", "--company", "abc_inc", "--out", base)
+    assert r.returncode == 0, r.stderr
+    run = base / "abc_inc" / RUN
+    (run / "commentary_draft.md").write_text(GOOD, encoding="utf-8")
+    return run
+
+
+def test_normal_run_then_render_passes_and_the_manifest_is_written(tmp_path_factory):
+    run = _fresh_run(tmp_path_factory, "p7c_ok")
+    m = json.loads((run / "run_manifest.json").read_text(encoding="utf-8"))
+    assert m == {"schema_version": 1, "run_id": RUN,
+                 "files": {"digest.json": {"sha256": sha(run / "digest.json")}, "metrics.json": {"sha256": sha(run / "metrics.json")}}}
+    r = cli("render", "--run-dir", run)
+    assert r.returncode == 0, r.stderr
+    assert _report(run)["status"] == "OK" and (run / "commentary.md").exists()
+
+
+def test_one_changed_byte_in_the_digest_is_DIGEST_TAMPERED_and_no_commentary_is_left(tmp_path_factory):
+    run = _fresh_run(tmp_path_factory, "p7c_byte")
+    assert cli("render", "--run-dir", run).returncode == 0
+    assert (run / "commentary.md").exists()                         # a stale one from the earlier good render
+    raw = bytearray((run / "digest.json").read_bytes())
+    i = raw.index(b"195,898.16") if b"195,898.16" in raw else len(raw) // 2
+    raw[i] = ord("7") if raw[i] != ord("7") else ord("8")
+    (run / "digest.json").write_bytes(bytes(raw))
+    r = cli("render", "--run-dir", run)
+    assert r.returncode == 4, r.stderr
+    assert "DIGEST_TAMPERED" in r.stderr and "GROUNDING_FAILED" in r.stderr
+    assert not (run / "commentary.md").exists()
+    rep = _report(run)
+    assert rep["status"] == "GROUNDING_FAILED" and [f["code"] for f in rep["failures"]] == ["DIGEST_TAMPERED"]
+    assert rep["expected_digest_sha256"] != rep["digest_sha256"] == sha(run / "digest.json")
+
+
+def test_a_fake_fact_id_added_to_allowed_facts_fails_instead_of_passing(tmp_path_factory):
+    run = _fresh_run(tmp_path_factory, "p7c_fake")
+    d = json.loads((run / "digest.json").read_text(encoding="utf-8"))
+    d["allowed_facts"]["rep.rev.total.2099-01"] = "999,999,999.00"
+    (run / "digest.json").write_text(dumps(d), encoding="utf-8")                 # same formatting as the engine's
+    draft = GOOD.replace("{{rep.rev.total.2026-06}}", "{{rep.rev.total.2099-01}}", 1)
+    assert draft != GOOD
+    (run / "commentary_draft.md").write_text(draft, encoding="utf-8")
+    r = cli("render", "--run-dir", run)
+    assert r.returncode == 4 and "DIGEST_TAMPERED" in r.stderr, r.stderr
+    assert not (run / "commentary.md").exists()
+    assert [f["code"] for f in _report(run)["failures"]] == ["DIGEST_TAMPERED"]   # not G1, and not a pass
+    print("FAKE-FACT STDERR:\n" + r.stderr)
+
+
+def test_a_missing_manifest_is_DIGEST_UNVERIFIED(tmp_path_factory):
+    run = _fresh_run(tmp_path_factory, "p7c_missing")
+    assert cli("render", "--run-dir", run).returncode == 0
+    (run / "run_manifest.json").unlink()
+    r = cli("render", "--run-dir", run)
+    assert r.returncode == 4 and "DIGEST_UNVERIFIED" in r.stderr, r.stderr
+    assert not (run / "commentary.md").exists()
+    assert [f["code"] for f in _report(run)["failures"]] == ["DIGEST_UNVERIFIED"]
+    assert sorted(p.name for p in run.iterdir()) == ["commentary_draft.md", "digest.json", "grounding_report.json", "metrics.json",
+                                                    "trend_pack.xlsx"]
+
+
+@pytest.mark.parametrize("content", ["{not json", "[]", "{}", '{"run_id": 1, "files": {}}'])
+def test_an_unreadable_manifest_is_DIGEST_UNVERIFIED(tmp_path, digest_text, content):
+    run = make_run(tmp_path, digest_text)
+    (run / "run_manifest.json").write_text(content, encoding="utf-8")
+    r = cli("render", "--run-dir", run)
+    assert r.returncode == 4 and "DIGEST_UNVERIFIED" in r.stderr
+    assert files(run) == ["commentary_draft.md", "digest.json", "grounding_report.json", "run_manifest.json"]
+
+
+def test_a_manifest_for_another_run_is_DIGEST_TAMPERED(tmp_path, digest_text):
+    run = make_run(tmp_path, digest_text, name="2026-05_w12-2026-05")
+    m = json.loads((run / "run_manifest.json").read_text(encoding="utf-8"))
+    m["run_id"] = RUN
+    (run / "run_manifest.json").write_text(manifest_text(m), encoding="utf-8")
+    r = cli("render", "--run-dir", run)
+    assert r.returncode == 4 and "DIGEST_TAMPERED" in r.stderr and RUN in r.stderr
+
+
+def test_the_manifest_is_byte_identical_on_two_runs_and_holds_no_paths_or_secrets(tmp_path_factory):
+    a, b = _fresh_run(tmp_path_factory, "p7c_a"), _fresh_run(tmp_path_factory, "p7c_b")
+    ma, mb = (a / "run_manifest.json").read_bytes(), (b / "run_manifest.json").read_bytes()
+    assert ma == mb and ma.isascii()
+    text = ma.decode()
+    for needle in ("\\", "C:", "/Users", "shoai", "tmp", "token", "secret", "password"):
+        assert needle.lower() not in text.lower(), needle
+    assert set(json.loads(text)) == {"schema_version", "run_id", "files"}          # no timestamps, no host data
+
+
+def test_failed_integrity_check_writes_only_the_report_and_removes_a_stale_commentary(tmp_path, digest_text):
+    run = make_run(tmp_path, digest_text)
+    (run / "commentary.md").write_text("stale", encoding="utf-8")
+    (run / "digest.json").write_text(digest_text + " ", encoding="utf-8")
+    r = cli("render", "--run-dir", run)
+    assert r.returncode == 4
+    assert files(run) == ["commentary_draft.md", "digest.json", "grounding_report.json", "run_manifest.json"]
+
+
+def test_integrity_codes_are_documented():
+    skill = ROOT / ".claude" / "skills" / "monthly-trend-analysis"
+    for f in (skill / "reference" / "commentary_rules.md", skill / "SKILL.md"):
+        t = f.read_text(encoding="utf-8")
+        assert "DIGEST_TAMPERED" in t and "DIGEST_UNVERIFIED" in t, f.name

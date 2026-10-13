@@ -25,6 +25,7 @@ EXPECTED_DENY = {
     "Read(//c/Users/shoai/AppData/Local/qbo-mcp/**)",
     "Edit(/tests/golden/abc_flags.expected.json)",
     "Edit(**/reference/commentary_rules.yaml)",
+    "Edit(**/digest.json)",
 }
 
 
@@ -186,11 +187,12 @@ SAMPLE = {   # NEVER-rule file -> (tool, a concrete path it stands for)
     "company.yaml": ("Edit", "companies/abc_inc/company.yaml"),
     "metrics.json": ("Read", "outputs/abc_inc/2026-06_w12-2026-06/metrics.json"),
     "trend_pack.xlsx": ("Read", "outputs/abc_inc/2026-06_w12-2026-06/trend_pack.xlsx"),
+    "digest.json": ("Edit", "outputs/abc_inc/2026-06_w12-2026-06/digest.json"),
     "reference/commentary_rules.yaml": ("Edit", ".claude/skills/monthly-trend-analysis/reference/commentary_rules.yaml"),
 }
 # NEVER rules that have no permission rule, because the requested rule groups do not include them. Naming them here keeps
 # the gap visible: adding a rule for one of them means removing it from this set.
-TEXT_ONLY = {"digest.json"}
+TEXT_ONLY = set()      # digest.json was a gap until P7c added Edit(**/digest.json)
 
 
 def test_every_path_named_in_the_never_rules_has_a_matching_ask_or_deny_rule_or_is_a_listed_gap():
@@ -208,7 +210,8 @@ def test_every_path_named_in_the_never_rules_has_a_matching_ask_or_deny_rule_or_
         else:
             unmatched.add(name)
     assert unmatched == TEXT_ONLY
-    assert not covered(rules, "Edit", "outputs/abc_inc/2026-06_w12-2026-06/digest.json")       # the documented gap is real
+    assert covered(p["deny"], "Edit", "outputs/abc_inc/2026-06_w12-2026-06/digest.json")
+    assert not covered(p["deny"], "Read", "outputs/abc_inc/2026-06_w12-2026-06/digest.json")   # the skill must still read it
 
 
 def test_the_source_workbook_rule_is_backed_by_a_data_folder_deny_rule():

@@ -18,6 +18,7 @@ from .adapters.excel_pl import ExcelPLAdapter
 from .categories import load_vocabulary
 from .config import ConfigError, load_company
 from .digest import build_digest
+from .manifest import write_manifest
 from .flags import blocked_flag, compute_flags
 from .mapping import MappingError, load_mapping, map_records
 from .metrics import _valid_period, compute_metrics, window_from_period_range
@@ -29,7 +30,7 @@ from .writers.xlsx_pack import write_workbook
 EXIT_OK, EXIT_USAGE, EXIT_BLOCKED, EXIT_GROUNDING_FAILED, EXIT_NOT_IMPLEMENTED = 0, 2, 3, 4, 70
 EXIT_ENVIRONMENT = 5          # no usable Python; returned only by scripts/ensure_python.py, never by trend_cli.py itself
 SKILL_DIR = Path(__file__).resolve().parents[2]
-SUCCESS_FILES = ("digest.json", "metrics.json", "trend_pack.xlsx")
+SUCCESS_FILES = ("digest.json", "metrics.json", "trend_pack.xlsx", "run_manifest.json")
 
 
 class UsageError(Exception):
@@ -199,4 +200,5 @@ def run(company_dir, *, as_of=None, window_lengths=None, window_end=None, period
     write_digest(files[0], digest)
     write_metrics_json(files[1], meta, recon, metrics, flagset)
     write_workbook(files[2], company, metrics, flagset, recon, mapped, meta)
+    write_manifest(out_dir)                                                # last: it hashes the two files above
     return RunResult("OK", EXIT_OK, out_dir, files)

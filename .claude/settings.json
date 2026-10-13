@@ -12,7 +12,8 @@
       "Read(**/tokens.json)",
       "Read(//c/Users/shoai/AppData/Local/qbo-mcp/**)",
       "Edit(/tests/golden/abc_flags.expected.json)",
-      "Edit(**/reference/commentary_rules.yaml)"
+      "Edit(**/reference/commentary_rules.yaml)",
+      "Edit(**/digest.json)"
     ]
   }
 }

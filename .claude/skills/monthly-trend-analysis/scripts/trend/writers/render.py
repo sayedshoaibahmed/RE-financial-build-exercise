@@ -10,7 +10,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..grounding import CHECKS, check_draft, report_notes, tokens_in
+from ..grounding import CHECKS, Failure, check_draft, report_notes, tokens_in
+from ..manifest import INTEGRITY, verify_digest
 from ..pipeline import EXIT_BLOCKED, EXIT_GROUNDING_FAILED, EXIT_OK, UsageError
 from .json_out import write_json
 
@@ -71,6 +72,20 @@ def _read_json(path):
     return data
 
 
+def _integrity_failure(run_dir, draft_path, code, message, expected, actual):
+    """The digest cannot be trusted: write ONLY grounding_report.json and drop any stale commentary.md."""
+    failure = Failure(code, message, None, "digest.json")
+    report = {"schema_version": 1, "status": "GROUNDING_FAILED", "company_id": None, "as_of": None,
+              "draft_file": draft_path.name, "digest_sha256": actual, "expected_digest_sha256": expected,
+              "tokens_used": 0, "checks": [], "failures": [failure.to_dict()],
+              "notes": {code: INTEGRITY[code]}}
+    report_path = run_dir / "grounding_report.json"
+    write_json(report_path, report)
+    (run_dir / "commentary.md").unlink(missing_ok=True)
+    return RenderResult("GROUNDING_FAILED", EXIT_GROUNDING_FAILED, run_dir, [report_path], [failure],
+                        f"{code}: only grounding_report.json was written")
+
+
 def render_run(run_dir, draft_path=None):
     run_dir = Path(run_dir)
     if not run_dir.is_dir():
@@ -85,6 +100,9 @@ def render_run(run_dir, draft_path=None):
                                 message=f"this run was BLOCKED ({reason}): there is no digest to check a commentary against")
         raise UsageError(f"digest.json not found in {run_dir}")
     draft_path = Path(draft_path) if draft_path else run_dir / "commentary_draft.md"
+    bad = verify_digest(run_dir)                                           # before anything in the digest is trusted
+    if bad:
+        return _integrity_failure(run_dir, draft_path, *bad)
     if not draft_path.is_file():
         raise UsageError(f"draft not found: {draft_path} (the commentary writer saves it as commentary_draft.md in the run folder)")
     if draft_path.stat().st_size > MAX_DRAFT_BYTES:

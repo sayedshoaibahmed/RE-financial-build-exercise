@@ -305,6 +305,9 @@ def test_example_commentary_passes_the_grounding_checker_against_the_real_abc_di
     run_dir = tmp_path / "abc_inc" / "2026-06_w12-2026-06"
     run_dir.mkdir(parents=True)
     (run_dir / "digest.json").write_text(digest_text, encoding="utf-8")
+    from trend.manifest import build_manifest, manifest_text
+    (run_dir / "run_manifest.json").write_text(
+        manifest_text(build_manifest(run_dir.name, (run_dir / "digest.json").read_bytes(), b"{}")), encoding="utf-8")
     shutil.copy(SKILL / "reference" / "example_commentary.md", run_dir / "commentary_draft.md")
     r = run(LAUNCHER, "render", "--run-dir", run_dir, cwd=tmp_path)
     assert r.returncode == 0, r.stderr
