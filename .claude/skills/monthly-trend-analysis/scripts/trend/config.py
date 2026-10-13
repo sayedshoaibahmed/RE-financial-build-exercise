@@ -2,18 +2,25 @@
 
 P1 knows only the `source:` block (PLAN 3.2). Later phases add keys here.
 """
+import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
+from decimal import Decimal
 from pathlib import Path
 
 import yaml
 
 SECTION_KINDS = ("income", "cogs", "opex", "other_income", "other_expense")
-TOP_LEVEL_KEYS = {"source", "categories_extra", "adjustments", "windows"}
+TOP_LEVEL_KEYS = {"source", "categories_extra", "adjustments", "windows", "thresholds"}
 
 
 class ConfigError(Exception):
-    pass
+    """Invalid company configuration. `code` is INVALID_CONFIG unless a more specific one applies
+    (UNKNOWN_THRESHOLD, INVALID_THRESHOLD, NEGATIVE_THRESHOLD)."""
+
+    def __init__(self, message, code="INVALID_CONFIG"):
+        super().__init__(message)
+        self.code = code
 
 
 @dataclass(frozen=True)
@@ -79,12 +86,63 @@ class WindowsCfg:
 
 
 @dataclass(frozen=True)
+class Thresholds:
+    """Flag thresholds (PLAN assumption A7). These are fallbacks only: company.yaml `thresholds:` wins."""
+    mom_min_abs: Decimal = Decimal("5000")           # MOM_MOVE: |change| >= this ...
+    mom_min_pct: Decimal = Decimal("20")             # ... and |change %| >= this
+    margin_min_pp: Decimal = Decimal("3")            # MOM_MOVE on gross / operating margin, percentage points
+    spike_window: int = 12                           # ONE_OFF_SPIKE: trailing months for median and MAD
+    spike_min_history: int = 6                       # ... needs at least this many prior months
+    spike_mad_multiple: Decimal = Decimal("4")       # ... deviation must exceed multiple x MAD
+    spike_min_abs: Decimal = Decimal("5000")         # ... and exceed this amount
+    level_shift_window: int = 3                      # LEVEL_SHIFT: months averaged before / after the shift month
+    level_shift_min_pct: Decimal = Decimal("20")     # ... averages differ by at least this %
+    level_shift_band_pct: Decimal = Decimal("5")     # ... the confirming months stay within +/- this % of the new level
+    level_shift_min_abs: Decimal = Decimal("0")      # ... and the monthly average moves by at least this amount (0 = PLAN rule, no floor)
+    negative_min_abs_amount: Decimal = Decimal("0")  # NEGATIVE_VALUE: below this is suppressed; equal or above is flagged
+    reversal_lookback_months: int = 3                # NEGATIVE_VALUE: "possible reversal" looks this far back
+    reversal_tolerance: Decimal = Decimal("0.01")    # ... and matches within this amount
+
+    def as_dict(self):
+        return {f.name: getattr(self, f.name) for f in fields(self)}
+
+
+_INT_THRESHOLDS = {"spike_window": 1, "spike_min_history": 1, "level_shift_window": 2, "reversal_lookback_months": 1}
+
+
+def parse_thresholds(raw):
+    w = "thresholds"
+    raw = _mapping(raw, w)
+    allowed = sorted(f.name for f in fields(Thresholds))
+    unknown = sorted(set(raw) - set(allowed))
+    if unknown:
+        raise ConfigError(f"UNKNOWN_THRESHOLD: {w}: unknown key(s) {', '.join(map(repr, unknown))}; "
+                          f"allowed: {', '.join(allowed)}", "UNKNOWN_THRESHOLD")
+    vals = {}
+    for k, v in raw.items():
+        where = f"{w}.{k}"
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or (isinstance(v, float) and not math.isfinite(v)):
+            raise ConfigError(f"INVALID_THRESHOLD: {where}: expected a finite number, got {v!r}", "INVALID_THRESHOLD")
+        if v < 0:
+            raise ConfigError(f"NEGATIVE_THRESHOLD: {where}: must not be negative, got {v!r}", "NEGATIVE_THRESHOLD")
+        if k in _INT_THRESHOLDS:
+            if not isinstance(v, int) or v < _INT_THRESHOLDS[k]:
+                raise ConfigError(f"INVALID_THRESHOLD: {where}: expected a whole number >= {_INT_THRESHOLDS[k]}, "
+                                  f"got {v!r}", "INVALID_THRESHOLD")
+            vals[k] = v
+        else:
+            vals[k] = Decimal(repr(v))
+    return Thresholds(**vals)
+
+
+@dataclass(frozen=True)
 class Company:
     company_id: str
     source: SourceConfig
     categories_extra: CategoriesExtra = CategoriesExtra()
     adjustments: tuple = ()
     windows: WindowsCfg = WindowsCfg()
+    thresholds: Thresholds = Thresholds()
 
 
 def _mapping(v, where):
@@ -275,4 +333,5 @@ def load_company(company_dir, base_dir=None):
     extra = parse_categories_extra(raw["categories_extra"]) if "categories_extra" in raw else CategoriesExtra()
     adjustments = parse_adjustments(raw["adjustments"]) if "adjustments" in raw else ()
     windows = parse_windows(raw["windows"]) if "windows" in raw else WindowsCfg()
-    return Company(company_dir.name, parse_source(raw["source"], base), extra, adjustments, windows)
+    thresholds = parse_thresholds(raw["thresholds"]) if "thresholds" in raw else Thresholds()
+    return Company(company_dir.name, parse_source(raw["source"], base), extra, adjustments, windows, thresholds)

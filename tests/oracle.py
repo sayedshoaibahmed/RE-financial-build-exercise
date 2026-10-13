@@ -133,3 +133,101 @@ def window(series, end, n):
 
 def pct(num, den):
     return None if den <= 0 else num / den * 100
+
+
+# ---------------------------------------------------------------------------
+# Naive flag calculations (P5). Written separately from trend.flags: plain loops over the
+# scanned leaves, exact Fractions. Primary basis rule: income lines as reported, every other
+# line with the configured adjustments zeroed.
+# ---------------------------------------------------------------------------
+
+def _line_series(o, leaf, zeroed):
+    ser = {}
+    for p, v in zip(o["periods"], leaf["values"]):
+        if leaf["section"] != "income" and (leaf["label"], p) in zeroed:
+            ser[p] = Fraction(0)
+        else:
+            ser[p] = cents(v)
+    return ser
+
+
+def _median(xs):
+    s = sorted(xs)
+    n = len(s)
+    return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2
+
+
+def negatives(o, mapping_path, min_abs=Fraction(1)):
+    """{(label, period): value} for booked negatives, excluding expected_negative accounts."""
+    exp = {e["account"]: bool(e.get("expected_negative")) for e in yaml.safe_load(Path(mapping_path).read_text(encoding="utf-8"))}
+    out = {}
+    for leaf in o["leaves"]:
+        if exp[leaf["label"]]:
+            continue
+        for p, v in zip(o["periods"], leaf["values"]):
+            c = cents(v)
+            if c < 0 and abs(c) >= min_abs:
+                out[(leaf["label"], p)] = c
+    return out
+
+
+def spikes_raw(o, zeroed=(), mult=4, min_abs=5000, hist=6, win=12):
+    """Every flagged (label, period) before collapsing runs -> 'up' | 'down' (relative to the trailing median)."""
+    out = {}
+    for leaf in o["leaves"]:
+        ser = _line_series(o, leaf, zeroed)
+        for p in sorted(ser):
+            prior = [ser[shift(p, -k)] for k in range(1, win + 1) if shift(p, -k) in ser]
+            if len(prior) < hist:
+                continue
+            med = _median(prior)
+            mad = _median([abs(x - med) for x in prior])
+            dev = abs(ser[p] - med)
+            if dev > mult * mad and dev > min_abs:
+                out[(leaf["label"], p)] = "up" if ser[p] > med else "down"
+    return out
+
+
+def spikes_collapsed(o, **kw):
+    """{(label, first_period): (direction, continued_months)}: consecutive months flagged in the same
+    direction are one run; a change of direction, or one or more unflagged months, starts a new run."""
+    raw = spikes_raw(o, **kw)
+    out, first, last, direction = {}, {}, {}, {}
+    for (label, p) in sorted(raw, key=lambda k: (k[0], k[1])):
+        d = raw[(label, p)]
+        if label in last and p == shift(last[label], 1) and d == direction[label]:
+            key = (label, first[label])
+            out[key] = (out[key][0], out[key][1] + 1)
+        else:
+            first[label] = p
+            direction[label] = d
+            out[(label, p)] = (d, 0)
+        last[label] = p
+    return out
+
+
+def spikes(o, zeroed=(), **kw):
+    """Collapsed run starts only: {(label, first_period)}."""
+    return set(spikes_collapsed(o, zeroed=zeroed, **kw))
+
+
+def level_shifts(o, zeroed=(), w=3, pct_min=20, band=5, min_abs=0):
+    out = set()
+    for leaf in o["leaves"]:
+        ser = _line_series(o, leaf, zeroed)
+        qual = set()
+        for t in sorted(ser):
+            before = [shift(t, -k) for k in range(w, 0, -1)]
+            after = [shift(t, k) for k in range(w)]
+            if not all(m in ser for m in before + after):
+                continue
+            sb, sa = sum(ser[m] for m in before), sum(ser[m] for m in after)
+            if sb == 0 or abs(sa - sb) * 100 < pct_min * abs(sb):
+                continue
+            if abs(sa - sb) < min_abs * w:          # optional floor on the change in the monthly average
+                continue
+            if any(abs(ser[m] * w - sa) * 100 > band * abs(sa) for m in after[1:]):
+                continue
+            qual.add(t)
+        out |= {(leaf["label"], t) for t in qual if shift(t, -1) not in qual}
+    return out

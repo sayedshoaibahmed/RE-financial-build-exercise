@@ -74,8 +74,8 @@ def test_invalid_windows_rejected(tmp_path, w):
 
 def test_still_rejects_unknown_top_level_key(tmp_path):
     with pytest.raises(ConfigError) as e:
-        _company_with(tmp_path, thresholds={})
-    assert "thresholds" in str(e.value)
+        _company_with(tmp_path, reporting={})
+    assert "reporting" in str(e.value)
 
 
 # ---------- basis.py ----------

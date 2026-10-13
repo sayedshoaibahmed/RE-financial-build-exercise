@@ -22,3 +22,22 @@ adjustments:
 windows:
   lengths: [12]
   end: latest
+
+# Flag thresholds (PLAN A7). negative_min_abs_amount: a negative amount below this is suppressed,
+# equal to it or above is flagged. 1.00 hides sub-dollar rounding noise such as Bank Service Charges
+# Apr 2025 (-0.01); the value stays in the data and in every total.
+thresholds:
+  mom_min_abs: 5000
+  mom_min_pct: 20
+  margin_min_pp: 3
+  spike_window: 12
+  spike_min_history: 6
+  spike_mad_multiple: 4
+  spike_min_abs: 5000
+  level_shift_window: 3
+  level_shift_min_pct: 20
+  level_shift_band_pct: 5
+  level_shift_min_abs: 2500   # materiality floor on the monthly-average change (PLAN rule alone, i.e. 0, gave 52 mostly tiny-line shifts)
+  negative_min_abs_amount: 1.00
+  reversal_lookback_months: 3
+  reversal_tolerance: 0.01

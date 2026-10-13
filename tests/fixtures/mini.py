@@ -36,8 +36,13 @@ def rows_for(sales, cogs, rent, mkt, with_cogs=True, sales_leaf=None):
     return rows
 
 
+def months(n, start="2025-01"):
+    y, m = int(start[:4]), int(start[5:7])
+    return [f"{(y * 12 + m - 1 + i) // 12:04d}-{(y * 12 + m - 1 + i) % 12 + 1:02d}" for i in range(n)]
+
+
 def build(tmp_path, periods, sales, cogs, rent, mkt, adjustments=None, windows=None, with_cogs=True,
-          sales_leaf=None, with_mapping_in_recon=True):
+          sales_leaf=None, with_mapping_in_recon=True, thresholds=None, expected_negative=()):
     cdir = tmp_path / "companies" / "mini"
     cdir.mkdir(parents=True)
     xlsx = tmp_path / "mini.xlsx"
@@ -53,6 +58,8 @@ def build(tmp_path, periods, sales, cogs, rent, mkt, adjustments=None, windows=N
         doc["adjustments"] = adjustments
     if windows is not None:
         doc["windows"] = windows
+    if thresholds is not None:
+        doc["thresholds"] = thresholds
     (cdir / "company.yaml").write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
     ents = [{"account": "Sales", "section": "income", **OK}]
     if with_cogs:
@@ -60,6 +67,9 @@ def build(tmp_path, periods, sales, cogs, rent, mkt, adjustments=None, windows=N
     ents += [{"account": "Rent", "section": "opex", "function": "g_and_a", "nature": "facilities_office", **OK},
              {"account": "Marketing", "section": "opex", "function": "sales_marketing",
               "nature": "marketing_events", **OK}]
+    for e in ents:
+        if e["account"] in expected_negative:
+            e["expected_negative"] = True
     (cdir / "mapping.yaml").write_text(yaml.safe_dump(ents, sort_keys=False), encoding="utf-8")
     company = load_company(cdir)
     records, controls = ExcelPLAdapter(company.source, company.company_id).load()
