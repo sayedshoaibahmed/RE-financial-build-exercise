@@ -27,6 +27,7 @@ from .writers.json_out import write_blocked_report, write_digest, write_metrics_
 from .writers.xlsx_pack import write_workbook
 
 EXIT_OK, EXIT_USAGE, EXIT_BLOCKED, EXIT_GROUNDING_FAILED, EXIT_NOT_IMPLEMENTED = 0, 2, 3, 4, 70
+EXIT_ENVIRONMENT = 5          # no usable Python; returned only by scripts/ensure_python.py, never by trend_cli.py itself
 SKILL_DIR = Path(__file__).resolve().parents[2]
 SUCCESS_FILES = ("digest.json", "metrics.json", "trend_pack.xlsx")
 

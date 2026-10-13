@@ -12,6 +12,7 @@ Exit codes (run, check, list-accounts):
       run then writes only blocked_report.json (and unmapped_accounts.yaml when accounts are unmapped);
       render refuses a run that was BLOCKED
   4   GROUNDING_FAILED (render): the draft failed the grounding checks; render writes only grounding_report.json
+  5   no usable Python (returned by scripts/ensure_python.py, which runs this file; never by this file itself)
 
 Outputs go to <out>/<company_id>/<run_id>/ (default <out> = outputs/ beside companies/), never into
 companies/ or the skill folder. Adds its own folder to sys.path so no package install is needed.
@@ -39,6 +40,7 @@ Exit codes:
   2  usage or configuration error (bad arguments, unknown company, invalid company.yaml)
   3  BLOCKED: the data failed a check; run writes only blocked_report.json (render refuses a BLOCKED run)
   4  GROUNDING_FAILED: render found the draft ungrounded and wrote only grounding_report.json
+  5  no usable Python (returned by scripts/ensure_python.py, not by this file)
 """
 COMMANDS = {
     "run": "compute metrics and flags and write digest.json, metrics.json and trend_pack.xlsx",

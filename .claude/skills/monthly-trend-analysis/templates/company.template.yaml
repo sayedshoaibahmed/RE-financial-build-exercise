@@ -1,0 +1,37 @@
+# Template for companies/<id>/company.yaml. A HUMAN copies and fills this in; the skill never does.
+# The folder name is the company id. Unknown keys are rejected. Delete these comments if you like.
+
+source:
+  type: excel_pl                       # the only supported layout: an Excel P&L sheet
+  path: CHANGE_ME/path/to/financials.xlsx   # relative paths are resolved from the folder that contains companies/
+  sheet: Income Statement              # sheet name
+  header_row: 5                        # row holding the month headers (text like "Jun 2026")
+  section_label_col: A                 # column with section headers and section totals
+  account_label_col: B                 # column with account names, group headers and derived rows
+  period_header_format: "%b %Y"        # how the month headers are written
+  sections:                            # declare every section and its total row label; kind: income | cogs | opex | other_income | other_expense
+    - {header: "Income",             total: "Total Income",             kind: income}
+    - {header: "Cost of Goods Sold", total: "Total Cost of Goods Sold", kind: cogs}
+    - {header: "Operating Expenses", total: "Total Operating Expenses", kind: opex}
+  groups: []                           # sub-groups with their own subtotal, e.g. {header: "Marketing", total: "Total Marketing"}
+  derived_rows:                        # rows the sheet computes itself; each role is optional
+    gross_profit: "Gross Profit"
+    operating_income: "Operating Income"
+    net_income: "Net Income"
+
+# categories_extra:                    # only if the shared vocabulary (reference/categories.md) is not enough
+#   functions: []
+#   natures: []
+
+adjustments: []                        # one-off items to exclude on the adjusted basis, each with a reason
+#  - {account: "Some Account", periods: ["2025-12"], reason: "One-time item (who said so, when)"}
+
+windows:
+  lengths: [12]                        # trailing window lengths in months; the first is the headline window
+  end: latest                          # "latest" or YYYY-MM
+
+thresholds:                            # flag thresholds; omit a key to use the default
+  mom_min_abs: 5000
+  mom_min_pct: 20
+  margin_min_pp: 3
+  negative_min_abs_amount: 1.00        # a negative below this is listed as suppressed, not flagged

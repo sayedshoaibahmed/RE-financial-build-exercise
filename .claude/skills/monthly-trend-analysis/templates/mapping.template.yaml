@@ -1,0 +1,25 @@
+# Template for companies/<id>/mapping.yaml, the file a HUMAN creates after reviewing mapping.proposed.yaml.
+# One entry per account. Every entry needs approved_by and approved_on; the loader rejects empty ones, and rejects the
+# proposal-only keys (proposed, rationale, confidence). This template is NEVER an approval: approved_by is null here.
+# Allowed function / nature ids: reference/categories.md.
+
+- account: "Rent"                      # the account label exactly as it appears in the source
+  section: opex                        # income | cogs | opex | other_income | other_expense
+  function: g_and_a                    # opex only
+  nature: facilities_office            # opex only
+  approved_by: null                    # a person's name, set by the human who approved this
+  approved_on: null                    # date of approval, e.g. 2026-10-13
+
+- account: "Interest Income"
+  section: opex
+  function: non_operating_tax
+  nature: interest_tax
+  expected_negative: true              # this line is normally negative; do not flag it
+  approved_by: null
+  approved_on: null
+
+- account: "Platform Revenue"
+  section: income                      # income and cogs entries need no function or nature
+  group: Platform Revenue              # optional; defaults to the account itself
+  approved_by: null
+  approved_on: null
