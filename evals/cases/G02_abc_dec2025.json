@@ -1,0 +1,53 @@
+{
+  "id": "G02",
+  "name": "abc_dec2025",
+  "title": "ABC as of Dec 2025: reported vs adjusted operating income",
+  "protects": "The Dec 2025 basis rule. Excluding the two configured one-off items turns reported operating income of +534,551.41 into an adjusted loss of -375,217.90 (delta -909,769.31): the exclusion makes results worse. Also both TTM bases and margins ending Dec 2025, exactly two NONRECURRING flags, and no month after the as-of month.",
+  "plan_ref": "PLAN.md 8.1 G02; anchors 4.2",
+  "runs": [
+    {
+      "name": "as of 2025-12",
+      "input": {
+        "company": "abc_inc",
+        "args": [
+          "--as-of",
+          "2025-12"
+        ]
+      },
+      "expect": {
+        "exit_code": 0,
+        "status": "OK",
+        "as_of": "2025-12",
+        "max_period": "2025-12",
+        "facts": {
+          "rep.opinc.2025-12": "534551.41",
+          "adj.opinc.2025-12": "-375217.90",
+          "delta.opinc.2025-12": "-909769.31",
+          "rep.opex.total.2025-12": "-402142.09",
+          "adj.opex.total.2025-12": "507627.22",
+          "rep.opinc_margin_pct.2025-12": "281.30",
+          "rep.opinc.tw12.2025-12": "-3415098.97",
+          "adj.opinc.tw12.2025-12": "-4324868.28",
+          "delta.opinc.tw12.2025-12": "-909769.31",
+          "rep.opinc_margin_pct.tw12.2025-12": "-159.19",
+          "adj.opinc_margin_pct.tw12.2025-12": "-201.60"
+        },
+        "flag_counts": {
+          "NONRECURRING": 2
+        },
+        "flags_required": [
+          {
+            "type": "NONRECURRING",
+            "period": "2025-12",
+            "subject": "Income Tax Benefit"
+          },
+          {
+            "type": "NONRECURRING",
+            "period": "2025-12",
+            "subject": "Stock-Based Compensation Expense"
+          }
+        ]
+      }
+    }
+  ]
+}

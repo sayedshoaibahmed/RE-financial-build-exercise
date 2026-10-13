@@ -1,0 +1,41 @@
+{
+  "id": "G12",
+  "name": "as_of_jan2026",
+  "title": "ABC as of Jan 2026",
+  "protects": "No lookahead. As of Jan 2026, Platform Revenue's drop (-40.74%) is a MOM_MOVE, but the LEVEL_SHIFT that needs the following months must NOT be raised yet, and no later month appears anywhere.",
+  "plan_ref": "PLAN.md 8.1 G12; anchors 4.3",
+  "runs": [
+    {
+      "name": "as of 2026-01",
+      "input": {
+        "company": "abc_inc",
+        "args": [
+          "--as-of",
+          "2026-01"
+        ]
+      },
+      "expect": {
+        "exit_code": 0,
+        "status": "OK",
+        "as_of": "2026-01",
+        "max_period": "2026-01",
+        "facts": {
+          "rep.rev.stream.platform_revenue.mom_pct.2026-01": "-40.74"
+        },
+        "flags_required": [
+          {
+            "type": "MOM_MOVE",
+            "period": "2026-01",
+            "subject": "rev.stream.platform_revenue"
+          }
+        ],
+        "flags_forbidden": [
+          {
+            "type": "LEVEL_SHIFT",
+            "subject": "Platform Revenue"
+          }
+        ]
+      }
+    }
+  ]
+}

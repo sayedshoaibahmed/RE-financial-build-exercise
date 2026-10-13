@@ -1,0 +1,46 @@
+{
+  "id": "G04",
+  "name": "missing_month",
+  "title": "Mar 2026 column deleted",
+  "protects": "Gaps are reported, never filled. A MISSING_MONTH flag is raised; Apr 2026 MoM and every 12-month window that spans the gap are n/a (gap_in_window); windows ending before the gap keep their values; no Mar 2026 value is invented.",
+  "plan_ref": "PLAN.md 8.1 G04",
+  "runs": [
+    {
+      "name": "Mar 2026 removed",
+      "input": {
+        "company": "abc_inc",
+        "args": [],
+        "transform": {
+          "delete_period": "2026-03"
+        }
+      },
+      "expect": {
+        "exit_code": 0,
+        "status": "OK",
+        "as_of": "2026-06",
+        "flags_required": [
+          {
+            "type": "MISSING_MONTH",
+            "period": "2026-03"
+          }
+        ],
+        "facts": {
+          "rep.rev.total.tw12.2025-12": "2145316.28",
+          "rep.rev.total.tw12.2026-01": "2181882.74",
+          "rep.rev.total.tw12.2026-02": "2188391.85",
+          "rep.rev.total.2026-04": "204512.42"
+        },
+        "na": {
+          "rep.rev.total.mom_pct.2026-04": null,
+          "rep.rev.total.tw12.2026-04": "gap_in_window",
+          "rep.rev.total.tw12.2026-05": "gap_in_window",
+          "rep.rev.total.tw12.2026-06": "gap_in_window"
+        },
+        "no_value": [
+          "rep.rev.total.2026-03",
+          "rep.rev.total.tw12.2026-03"
+        ]
+      }
+    }
+  ]
+}

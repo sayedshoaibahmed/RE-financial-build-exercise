@@ -1,0 +1,39 @@
+{
+  "id": "X02",
+  "name": "grounding_failure",
+  "title": "A draft with one free-typed number is refused",
+  "protects": "The grounding gate end to end through the CLI. The good draft with one token replaced by its typed-out value (238.99%) must fail render with exit 4 and exactly G2 BARE_NUMBER; only grounding_report.json is written and a stale commentary.md is deleted. Not a PLAN case id (PLAN covers this as mutant M11 on G01).",
+  "plan_ref": "PLAN.md 6.2 rule 2; 8.2 M11",
+  "runs": [
+    {
+      "name": "free-typed number",
+      "input": {
+        "company": "abc_inc",
+        "args": []
+      },
+      "expect": {
+        "exit_code": 0,
+        "status": "OK"
+      },
+      "render": [
+        {
+          "draft": "tests/fixtures/commentary/good_abc_2026-06.md",
+          "edits": [
+            [
+              "{{rep.opex.total.pct_rev.2026-06}} of revenue",
+              "238.99% of revenue"
+            ]
+          ],
+          "stale_commentary": true,
+          "expect": {
+            "exit_code": 4,
+            "codes": [
+              "G2"
+            ],
+            "commentary_written": false
+          }
+        }
+      ]
+    }
+  ]
+}

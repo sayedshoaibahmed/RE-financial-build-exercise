@@ -1,0 +1,110 @@
+{
+  "id": "G03",
+  "name": "subtotal_trap",
+  "title": "A subtotal row disguised as a leaf",
+  "protects": "No double counting of a subtotal. (1) A row holding the Total Marketing amounts but labelled like a leaf ('Marketing Subtotal'), with an approved mapping, passes the adapter as an ordinary account; reconciliation must catch it: C6 fails in every month by the Total Marketing amount and the run is BLOCKED with nothing downstream. (2) PLAN's literal transform (relabel the real 'Total Marketing' row) must also end BLOCKED with nothing downstream; the reason code is not pinned (see note). (3) An unknown 'Total ...' label stops the adapter with UNDECLARED_TOTAL.",
+  "note": "PLAN 8.1 expects the literal relabel to fail C6. In the current code the adapter blocks it first: the declared group 'Marketing' is never closed by 'Total Marketing'. That is stricter, not a bug, so run (1) builds the trap the adapter cannot see, to keep C6 itself under test. Run (2) pins only BLOCKED + no outputs, because the reason code could only be taken from the package's own output.",
+  "plan_ref": "PLAN.md 8.1 G03",
+  "runs": [
+    {
+      "name": "copied subtotal looks like a leaf, mapped and approved",
+      "input": {
+        "company": "abc_inc",
+        "args": [],
+        "transform": {
+          "insert_row": {
+            "before": "Total Operating Expenses",
+            "label": "Marketing Subtotal",
+            "copy_from": "Total Marketing"
+          },
+          "mapping_add": [
+            {
+              "account": "Marketing Subtotal",
+              "section": "opex",
+              "function": "sales_marketing",
+              "nature": "marketing_events",
+              "approved_by": "Eval",
+              "approved_on": "2026-10-13"
+            }
+          ]
+        }
+      },
+      "expect": {
+        "exit_code": 3,
+        "status": "BLOCKED",
+        "blocked_reason": "RECON_FAIL",
+        "failed_controls": [
+          {
+            "control_id": "C6",
+            "period": "2026-06",
+            "expected": "468181.80",
+            "actual": "517574.50",
+            "difference": "49392.70",
+            "oracle": {
+              "expected": "original:rep.opex.total.2026-06",
+              "actual": "transformed:rep.opex.total.2026-06",
+              "difference": "transformed:leaf:Marketing Subtotal:2026-06"
+            }
+          }
+        ],
+        "control_fails_every_period": [
+          "C6"
+        ],
+        "run_folder_files": [
+          "blocked_report.json"
+        ]
+      }
+    },
+    {
+      "name": "PLAN literal: real Total Marketing row relabelled",
+      "input": {
+        "company": "abc_inc",
+        "args": [],
+        "transform": {
+          "relabel": {
+            "from": "Total Marketing",
+            "to": "Marketing Subtotal"
+          },
+          "mapping_add": [
+            {
+              "account": "Marketing Subtotal",
+              "section": "opex",
+              "function": "sales_marketing",
+              "nature": "marketing_events",
+              "approved_by": "Eval",
+              "approved_on": "2026-10-13"
+            }
+          ]
+        }
+      },
+      "expect": {
+        "exit_code": 3,
+        "status": "BLOCKED",
+        "run_folder_files": [
+          "blocked_report.json"
+        ]
+      }
+    },
+    {
+      "name": "variant: undeclared total label",
+      "input": {
+        "company": "abc_inc",
+        "args": [],
+        "transform": {
+          "relabel": {
+            "from": "Total Marketing",
+            "to": "Total Mktg"
+          }
+        }
+      },
+      "expect": {
+        "exit_code": 3,
+        "status": "BLOCKED",
+        "blocked_reason": "UNDECLARED_TOTAL",
+        "run_folder_files": [
+          "blocked_report.json"
+        ]
+      }
+    }
+  ]
+}

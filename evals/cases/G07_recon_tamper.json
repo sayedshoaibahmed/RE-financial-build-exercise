@@ -1,0 +1,69 @@
+{
+  "id": "G07",
+  "name": "recon_tamper",
+  "title": "Usage Fees Jun 2026 + 1,000.00 in the leaf only",
+  "protects": "Reconciliation catches a single edited cell. Controls C1, C3, C7 and C8 must fail in Jun 2026 by exactly 1,000.00 with cell references; no other month fails; the run is BLOCKED and writes nothing downstream.",
+  "plan_ref": "PLAN.md 8.1 G07",
+  "runs": [
+    {
+      "name": "one leaf edited",
+      "input": {
+        "company": "abc_inc",
+        "args": [],
+        "transform": {
+          "add_to_cell": {
+            "label": "Usage Fees",
+            "period": "2026-06",
+            "amount": "1000.00"
+          }
+        }
+      },
+      "expect": {
+        "exit_code": 3,
+        "status": "BLOCKED",
+        "blocked_reason": "RECON_FAIL",
+        "failed_controls": [
+          {
+            "control_id": "C1",
+            "period": "2026-06",
+            "difference": "1000.00",
+            "oracle": {
+              "difference": "transform:amount"
+            }
+          },
+          {
+            "control_id": "C3",
+            "period": "2026-06",
+            "difference": "1000.00",
+            "oracle": {
+              "difference": "transform:amount"
+            }
+          },
+          {
+            "control_id": "C7",
+            "period": "2026-06",
+            "difference": "1000.00",
+            "oracle": {
+              "difference": "transform:amount"
+            }
+          },
+          {
+            "control_id": "C8",
+            "period": "2026-06",
+            "difference": "1000.00",
+            "oracle": {
+              "difference": "transform:amount"
+            }
+          }
+        ],
+        "failed_periods_only": [
+          "2026-06"
+        ],
+        "failed_controls_have_source_ref": true,
+        "run_folder_files": [
+          "blocked_report.json"
+        ]
+      }
+    }
+  ]
+}

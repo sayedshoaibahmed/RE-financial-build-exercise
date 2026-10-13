@@ -1,0 +1,36 @@
+{
+  "id": "G05",
+  "name": "custom_window",
+  "title": "6-month window ending Mar 2026 (--window 6 --window-end 2026-03)",
+  "protects": "Configurable windows: a 6-month window ending Mar 2026 on both bases (it contains Dec 2025, so adjusted differs from reported), the preceding 6-month window, n/a before 6 months exist, and no Apr-Jun 2026 data once the window end sets the as-of month.",
+  "plan_ref": "PLAN.md 8.1 G05; anchors 4.3",
+  "runs": [
+    {
+      "name": "window 6 ending 2026-03",
+      "input": {
+        "company": "abc_inc",
+        "args": [
+          "--window",
+          "6",
+          "--window-end",
+          "2026-03"
+        ]
+      },
+      "expect": {
+        "exit_code": 0,
+        "status": "OK",
+        "as_of": "2026-03",
+        "max_period": "2026-03",
+        "facts": {
+          "rep.rev.total.tw6.2026-03": "1148039.20",
+          "rep.opinc.tw6.2026-03": "-1095637.76",
+          "adj.opinc.tw6.2026-03": "-2005407.07",
+          "rep.rev.total.tw6.2025-09": "1061270.19"
+        },
+        "na": {
+          "rep.rev.total.tw6.2025-05": "insufficient_history"
+        }
+      }
+    }
+  ]
+}

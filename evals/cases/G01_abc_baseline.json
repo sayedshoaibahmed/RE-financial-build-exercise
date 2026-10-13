@@ -1,0 +1,61 @@
+{
+  "id": "G01",
+  "name": "abc_baseline",
+  "title": "ABC as delivered, default settings (12-month window ending Jun 2026)",
+  "protects": "The headline numbers an owner reads first: Jun 2026 revenue, MoM, gross margin, opex and its share of revenue, the payroll nature total, and the trailing-12-month (TTM) totals and margins on both bases. Also that TTM is n/a until 12 months exist, and that the reference good draft passes render against a real run.",
+  "plan_ref": "PLAN.md 8.1 G01; anchors 4.2, 4.3, 4.4",
+  "runs": [
+    {
+      "name": "default run",
+      "input": {
+        "company": "abc_inc",
+        "args": []
+      },
+      "expect": {
+        "exit_code": 0,
+        "status": "OK",
+        "as_of": "2026-06",
+        "facts": {
+          "rep.rev.total.2026-06": "195898.16",
+          "rep.rev.total.2026-05": "208350.96",
+          "rep.rev.total.mom_pct.2026-06": "-5.98",
+          "rep.gm_pct.2026-06": "70.15",
+          "rep.gm_pct.2026-05": "67.04",
+          "rep.opex.total.2026-06": "468181.80",
+          "rep.opex.total.pct_rev.2026-06": "238.99",
+          "rep.opex.nat.payroll_benefits.2026-06": "328377.23",
+          "rep.rev.total.tw12.2026-06": "2303975.51",
+          "rep.gm_pct.tw12.2026-06": "69.46",
+          "rep.opinc.tw12.2026-06": "-3089779.59",
+          "adj.opinc.tw12.2026-06": "-3999548.90",
+          "rep.opinc_margin_pct.tw12.2026-06": "-134.11",
+          "adj.opinc_margin_pct.tw12.2026-06": "-173.59",
+          "rep.rev.total.tw12.2025-12": "2145316.28",
+          "rep.gm_pct.tw12.2025-12": "70.93"
+        },
+        "na": {
+          "rep.rev.total.tw12.2025-01": "insufficient_history",
+          "rep.rev.total.tw12.2025-11": "insufficient_history"
+        },
+        "flags_forbidden": [
+          {
+            "type": "BLOCKED"
+          },
+          {
+            "type": "MISSING_MONTH"
+          }
+        ]
+      },
+      "render": [
+        {
+          "draft": "tests/fixtures/commentary/good_abc_2026-06.md",
+          "expect": {
+            "exit_code": 0,
+            "codes": [],
+            "commentary_written": true
+          }
+        }
+      ]
+    }
+  ]
+}

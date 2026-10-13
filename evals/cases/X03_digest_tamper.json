@@ -1,0 +1,44 @@
+{
+  "id": "X03",
+  "name": "digest_tamper",
+  "title": "digest.json edited after run",
+  "protects": "Digest integrity. A good draft renders; then one digit in digest.json is changed (195,898.16 -> 195,898.17) and render must refuse with exit 4 and exactly DIGEST_TAMPERED, deleting the earlier commentary.md. Not a PLAN case id (the manifest check came in P7c, after PLAN 8 was written).",
+  "plan_ref": "P7c run manifest; SKILL.md integrity codes",
+  "runs": [
+    {
+      "name": "render, tamper, render again",
+      "input": {
+        "company": "abc_inc",
+        "args": []
+      },
+      "expect": {
+        "exit_code": 0,
+        "status": "OK"
+      },
+      "render": [
+        {
+          "draft": "tests/fixtures/commentary/good_abc_2026-06.md",
+          "expect": {
+            "exit_code": 0,
+            "codes": [],
+            "commentary_written": true
+          }
+        },
+        {
+          "draft": "tests/fixtures/commentary/good_abc_2026-06.md",
+          "tamper_digest": {
+            "find": "195,898.16",
+            "replace": "195,898.17"
+          },
+          "expect": {
+            "exit_code": 4,
+            "codes": [
+              "DIGEST_TAMPERED"
+            ],
+            "commentary_written": false
+          }
+        }
+      ]
+    }
+  ]
+}

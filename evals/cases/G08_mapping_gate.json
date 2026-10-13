@@ -1,0 +1,69 @@
+{
+  "id": "G08",
+  "name": "mapping_gate",
+  "title": "New account: absent from the mapping, then present but unapproved",
+  "protects": "The human approval gate. (a) An opex account missing from mapping.yaml blocks the run with UNMAPPED_ACCOUNT and is listed in unmapped_accounts.yaml. (b) The same account in mapping.yaml with approved_by null blocks with UNAPPROVED_MAPPING. In both, mapping.yaml is byte-identical after the run and no metrics are written.",
+  "plan_ref": "PLAN.md 8.1 G08",
+  "runs": [
+    {
+      "name": "(a) unmapped account",
+      "input": {
+        "company": "abc_inc",
+        "args": [],
+        "transform": {
+          "insert_row": {
+            "before": "Total Operating Expenses",
+            "label": "Eval New Expense",
+            "amount": "100.00"
+          }
+        }
+      },
+      "expect": {
+        "exit_code": 3,
+        "status": "BLOCKED",
+        "blocked_reason": "UNMAPPED_ACCOUNT",
+        "unmapped_accounts_include": [
+          "Eval New Expense"
+        ],
+        "mapping_unchanged": true,
+        "run_folder_files": [
+          "blocked_report.json",
+          "unmapped_accounts.yaml"
+        ]
+      }
+    },
+    {
+      "name": "(b) mapped but not approved",
+      "input": {
+        "company": "abc_inc",
+        "args": [],
+        "transform": {
+          "insert_row": {
+            "before": "Total Operating Expenses",
+            "label": "Eval New Expense",
+            "amount": "100.00"
+          },
+          "mapping_add": [
+            {
+              "account": "Eval New Expense",
+              "section": "opex",
+              "function": "g_and_a",
+              "nature": "other_operating",
+              "approved_by": null,
+              "approved_on": null
+            }
+          ]
+        }
+      },
+      "expect": {
+        "exit_code": 3,
+        "status": "BLOCKED",
+        "blocked_reason": "UNAPPROVED_MAPPING",
+        "mapping_unchanged": true,
+        "run_folder_files": [
+          "blocked_report.json"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": "X01",
+  "name": "abc_flags_golden",
+  "title": "ABC flags equal the frozen golden list",
+  "protects": "Every ABC flag (id, type, severity, period, subject, observed values, basis) against tests/golden/abc_flags.expected.json, which a human reviewed. Any added, removed or changed flag fails. Not a PLAN case id: PLAN 8.1 folds flags into G01 (L1); a separate case reports a flag regression on its own line.",
+  "plan_ref": "PLAN.md 8.3 L1; tests/golden/abc_flags.expected.json",
+  "runs": [
+    {
+      "name": "default run",
+      "input": {
+        "company": "abc_inc",
+        "args": []
+      },
+      "expect": {
+        "exit_code": 0,
+        "status": "OK",
+        "flags_golden": "tests/golden/abc_flags.expected.json"
+      }
+    }
+  ]
+}
