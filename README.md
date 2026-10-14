@@ -2,6 +2,8 @@
 
 One repo, three tasks and an architecture note.
 
+Built and tested on Windows with PowerShell and Python 3.12. macOS and Linux are not tested.
+
 | Task | What it is | Where |
 |---|---|---|
 | 1. QuickBooks connector | A read-only MCP server that lets Claude Desktop read a QuickBooks Online Sandbox company | `connector\` |
